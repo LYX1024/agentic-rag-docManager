@@ -98,7 +98,7 @@ def ingest_document(
         logger.info(f"[{kb_name}] Split into {len(chunks)} chunks")
 
         # Step 4: Title enhance (prepend hierarchy to each chunk)
-        if hasattr(chunks[0], "metadata") and "hierarchy" not in str(type(chunks[0])):
+        if chunks:
             chunks = zh_title_enhance(chunks)
 
         # Step 5: Build texts and metadatas

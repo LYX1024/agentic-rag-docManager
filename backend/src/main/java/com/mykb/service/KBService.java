@@ -4,7 +4,7 @@ import com.mykb.dto.KBCreateRequest;
 import com.mykb.entity.KnowledgeBase;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.KBManagementClient;
-import com.mykb.proto.kb.KbManagement;
+import com.mykb.proto.kb.KBStatsResponse;
 import com.mykb.repository.KnowledgeBaseRepository;
 import com.mykb.repository.KnowledgeFileRepository;
 import lombok.RequiredArgsConstructor;
@@ -103,15 +103,13 @@ public class KBService {
         stats.put("fileCount", fileRepository.countByKbId(kbId));
 
         try {
-            KbManagement.KBStatsResponse grpcStats = kbManagementClient.getStats(kbId);
-            stats.put("totalChunks", grpcStats.getTotalChunks());
-            stats.put("totalVectors", grpcStats.getTotalVectors());
-            stats.put("diskSize", grpcStats.getDiskSize());
+            KBStatsResponse grpcStats = kbManagementClient.getStats(kbId);
+            stats.put("totalChunks", grpcStats.getChunkCount());
+            stats.put("totalFileSize", grpcStats.getTotalFileSize());
         } catch (Exception e) {
             log.warn("Failed to get Python-side stats: kbId={}, error={}", kbId, e.getMessage());
             stats.put("totalChunks", 0);
-            stats.put("totalVectors", 0);
-            stats.put("diskSize", "unknown");
+            stats.put("totalFileSize", 0);
         }
 
         return stats;

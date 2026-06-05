@@ -81,7 +81,7 @@ public class DocumentService {
         log.info("KnowledgeFile saved: fileId={}, kbId={}, filename={}", saved.getId(), kbId, originalFilename);
 
         try {
-            documentClient.uploadDocument(kbId.toString(), originalFilename, fileExt, file.getSize(), minioKey);
+            documentClient.uploadDocument(kbId, originalFilename, fileExt, file.getSize(), minioKey);
             saved.setStatus("COMPLETED");
             fileRepository.save(saved);
             log.info("Document processing completed by Python service: fileId={}", saved.getId());
@@ -128,7 +128,7 @@ public class DocumentService {
         log.info("Chunks deleted for fileId={}", fileId);
 
         try {
-            documentClient.deleteDocument(kf.getKbId(), kf.getId().toString());
+            documentClient.deleteDocument(kf.getKbId(), kf.getId(), kf.getFilePathInMinio());
         } catch (Exception e) {
             log.warn("Python document deletion failed (non-fatal): fileId={}, error={}", fileId, e.getMessage());
         }

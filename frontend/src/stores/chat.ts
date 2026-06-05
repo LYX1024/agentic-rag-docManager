@@ -17,8 +17,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function createSession(kbId: number, title: string) {
-    const userId = authStore.user?.id || 1
-    const res = await chatApi.createSession(userId, kbId, title)
+    const res = await chatApi.createSession(kbId, title)
     sessions.value.unshift(res.data)
     currentSessionId.value = res.data.id
     messages.value = []

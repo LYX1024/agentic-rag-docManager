@@ -6,7 +6,7 @@ export interface KnowledgeBase {
   description: string
   vsType: string
   embedModel: string
-  fileCount?: number
+  userId: number
   createdAt?: string
   updatedAt?: string
 }
@@ -25,41 +25,26 @@ export interface UpdateKBParams {
   embedModel?: string
 }
 
-export interface PaginatedResult<T> {
-  records: T[]
-  total: number
-  size: number
-  current: number
-}
-
 export function createKB(data: CreateKBParams): Promise<ApiResponse<KnowledgeBase>> {
-  return request.post('/knowledge-base/create', data).then(res => res.data)
+  return request.post('/kb', data)
 }
 
-export function listKBs(page: number = 1, size: number = 20): Promise<ApiResponse<PaginatedResult<KnowledgeBase>>> {
-  return request.get('/knowledge-base/list', { params: { page, size } }).then(res => res.data)
+export function listKBs(page: number = 0, size: number = 20): Promise<ApiResponse<{ content: KnowledgeBase[], totalElements: number }>> {
+  return request.get('/kb', { params: { page, size } })
 }
 
 export function getKB(id: number): Promise<ApiResponse<KnowledgeBase>> {
-  return request.get(`/knowledge-base/${id}`).then(res => res.data)
+  return request.get(`/kb/${id}`)
 }
 
 export function updateKB(id: number, data: UpdateKBParams): Promise<ApiResponse<KnowledgeBase>> {
-  return request.put(`/knowledge-base/${id}`, data).then(res => res.data)
+  return request.put(`/kb/${id}`, data)
 }
 
 export function deleteKB(id: number): Promise<ApiResponse<null>> {
-  return request.delete(`/knowledge-base/${id}`).then(res => res.data)
+  return request.delete(`/kb/${id}`)
 }
 
-export interface KBStats {
-  totalDocs: number
-  totalChunks: number
-  vsType: string
-  embedModel: string
-  storageSize: number
-}
-
-export function getKBStats(id: number): Promise<ApiResponse<KBStats>> {
-  return request.get(`/knowledge-base/${id}/stats`).then(res => res.data)
+export function getKBStats(id: number): Promise<ApiResponse<Record<string, any>>> {
+  return request.get(`/kb/${id}/stats`)
 }

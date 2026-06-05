@@ -5,7 +5,7 @@ import com.mykb.entity.ChatMessage;
 import com.mykb.entity.ChatSession;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.ChatClient;
-import com.mykb.proto.chat.ChatService;
+import com.mykb.proto.chat.RagChatChunk;
 import com.mykb.repository.ChatMessageRepository;
 import com.mykb.repository.ChatSessionRepository;
 import lombok.RequiredArgsConstructor;
@@ -55,9 +55,9 @@ public class ChatService {
         return messageRepository.findBySessionIdOrderByCreatedAtAsc(sessionId);
     }
 
-    public Iterator<ChatService.RagChatResponse> ragChat(String sessionId, String query, Long kbId) {
+    public Iterator<RagChatChunk> ragChat(String sessionId, String query, Long kbId) {
         log.info("Starting RAG chat: sessionId={}, query={}, kbId={}", sessionId, query, kbId);
-        return chatClient.ragChat(sessionId, query, kbId);
+        return chatClient.ragChat(sessionId, query, kbId, "");
     }
 
     public ChatSession getSession(Long sessionId) {

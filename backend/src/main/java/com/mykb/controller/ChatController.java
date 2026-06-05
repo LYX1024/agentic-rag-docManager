@@ -5,7 +5,9 @@ import com.mykb.dto.ApiResponse;
 import com.mykb.dto.ChatSessionCreateRequest;
 import com.mykb.entity.ChatMessage;
 import com.mykb.entity.ChatSession;
-import com.mykb.proto.chat.ChatService;
+import com.mykb.proto.chat.RagChatChunk;
+import com.mykb.proto.chat.RagChatRequest;
+import com.mykb.proto.common.SourceDoc;
 import com.mykb.service.ChatService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -68,34 +70,34 @@ public class ChatController {
         String finalSessionId = effectiveSessionId;
         new Thread(() -> {
             StringBuilder fullContent = new StringBuilder();
-            StringBuilder sourcesJson = new StringBuilder();
+            String sourcesJson = null;
             try {
-                Iterator<ChatService.RagChatResponse> responses =
+                Iterator<RagChatChunk> responses =
                         chatService.ragChat(finalSessionId, query, kbId);
 
                 while (responses.hasNext()) {
-                    ChatService.RagChatResponse chunk = responses.next();
-
-                    if ("token".equals(chunk.getType())) {
-                        fullContent.append(chunk.getContent());
-                        SseEmitter.SseEventBuilder event = SseEmitter.event()
+                    RagChatChunk chunk = responses.next();
+                    String token = chunk.getToken();
+                    if (!token.isEmpty()) {
+                        fullContent.append(token);
+                        emitter.send(SseEmitter.event()
                                 .name("token")
-                                .data(chunk.getContent());
-                        emitter.send(event);
-                    } else if ("sources".equals(chunk.getType())) {
-                        sourcesJson.append(chunk.getContent());
-                        SseEmitter.SseEventBuilder event = SseEmitter.event()
-                                .name("sources")
-                                .data(chunk.getContent());
-                        emitter.send(event);
+                                .data(token));
+                    }
+                    if (chunk.getFinished()) {
+                        List<SourceDoc> sourcesList = chunk.getSourcesList();
+                        if (!sourcesList.isEmpty()) {
+                            sourcesJson = sourcesList.toString();
+                            emitter.send(SseEmitter.event()
+                                    .name("sources")
+                                    .data(sourcesJson));
+                        }
                     }
                 }
 
-                chatService.saveMessage(Long.valueOf(finalSessionId), "user",
-                        query, null);
+                chatService.saveMessage(Long.valueOf(finalSessionId), "user", query, null);
                 chatService.saveMessage(Long.valueOf(finalSessionId), "assistant",
-                        fullContent.toString(),
-                        sourcesJson.length() > 0 ? sourcesJson.toString() : null);
+                        fullContent.toString(), sourcesJson);
 
                 emitter.complete();
                 log.info("RAG chat completed: sessionId={}, contentLength={}", finalSessionId, fullContent.length());
@@ -103,10 +105,9 @@ public class ChatController {
             } catch (Exception e) {
                 log.error("RAG chat error: sessionId={}, query={}, error={}", finalSessionId, query, e.getMessage(), e);
                 try {
-                    SseEmitter.SseEventBuilder event = SseEmitter.event()
+                    emitter.send(SseEmitter.event()
                             .name("error")
-                            .data("Chat error: " + e.getMessage());
-                    emitter.send(event);
+                            .data("Chat error: " + e.getMessage()));
                 } catch (IOException ex) {
                     log.error("Failed to send error event", ex);
                 }

@@ -1,9 +1,12 @@
 package com.mykb.grpc.client;
 
 import com.mykb.exception.BusinessException;
-import com.mykb.proto.common.Common;
+import com.mykb.proto.kb.CreateKBRequest;
+import com.mykb.proto.kb.DeleteKBRequest;
+import com.mykb.proto.kb.GetKBStatsRequest;
+import com.mykb.proto.kb.KBInfo;
 import com.mykb.proto.kb.KBManagementServiceGrpc;
-import com.mykb.proto.kb.KbManagement;
+import com.mykb.proto.kb.KBStatsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,21 +18,16 @@ public class KBManagementClient {
 
     private final KBManagementServiceGrpc.KBManagementServiceBlockingStub stub;
 
-    public String createKB(String name, String description, String vsType, String embedModel, Long ownerId) {
+    public void createKB(String name, String description, String vsType, String embedModel, Long kbId) {
         try {
-            Common.OwnerRef owner = Common.OwnerRef.newBuilder()
-                    .setOwnerId(ownerId.toString())
-                    .build();
-            KbManagement.CreateKBRequest request = KbManagement.CreateKBRequest.newBuilder()
+            CreateKBRequest request = CreateKBRequest.newBuilder()
                     .setName(name)
                     .setDescription(description != null ? description : "")
-                    .setVsType(vsType != null ? vsType : "FAISS")
-                    .setEmbedModel(embedModel != null ? embedModel : "bge-m3")
-                    .setOwner(owner)
+                    .setUserId(kbId)
                     .build();
-            KbManagement.CreateKBResponse response = stub.createKB(request);
-            log.info("gRPC createKB success: kbId={}, vsId={}", response.getKbId(), response.getVsId());
-            return response.getKbId();
+            @SuppressWarnings("unused")
+            KBInfo response = stub.createKB(request);
+            log.info("gRPC createKB success: kbName={}", name);
         } catch (Exception e) {
             log.error("gRPC createKB failed: {}", e.getMessage(), e);
             throw new BusinessException("Failed to create knowledge base on Python service: " + e.getMessage());
@@ -38,8 +36,8 @@ public class KBManagementClient {
 
     public void deleteKB(Long kbId) {
         try {
-            KbManagement.DeleteKBRequest request = KbManagement.DeleteKBRequest.newBuilder()
-                    .setKbId(kbId.toString())
+            DeleteKBRequest request = DeleteKBRequest.newBuilder()
+                    .setKbId(kbId)
                     .build();
             stub.deleteKB(request);
             log.info("gRPC deleteKB success: kbId={}", kbId);
@@ -49,12 +47,12 @@ public class KBManagementClient {
         }
     }
 
-    public KbManagement.KBStatsResponse getStats(Long kbId) {
+    public KBStatsResponse getStats(Long kbId) {
         try {
-            KbManagement.KBStatsRequest request = KbManagement.KBStatsRequest.newBuilder()
-                    .setKbId(kbId.toString())
+            GetKBStatsRequest request = GetKBStatsRequest.newBuilder()
+                    .setKbId(kbId)
                     .build();
-            KbManagement.KBStatsResponse response = stub.getStats(request);
+            KBStatsResponse response = stub.getKBStats(request);
             log.info("gRPC getStats success: kbId={}", kbId);
             return response;
         } catch (Exception e) {
