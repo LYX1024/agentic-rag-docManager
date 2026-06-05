@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as chatApi from '@/api/chat'
+import { useAuthStore } from '@/stores/auth'
 import type { ChatSession, ChatMessage as ChatMessageType } from '@/api/chat'
 
 export const useChatStore = defineStore('chat', () => {
+  const authStore = useAuthStore()
   const sessions = ref<ChatSession[]>([])
   const currentSessionId = ref<number | null>(null)
   const messages = ref<ChatMessageType[]>([])
@@ -15,7 +17,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function createSession(kbId: number, title: string) {
-    const userId = 1 // Will be replaced with actual user ID from auth store
+    const userId = authStore.user?.id || 1
     const res = await chatApi.createSession(userId, kbId, title)
     sessions.value.unshift(res.data)
     currentSessionId.value = res.data.id

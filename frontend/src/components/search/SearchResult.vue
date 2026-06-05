@@ -39,10 +39,18 @@ const scorePercent = computed(() => {
   return (props.result.score * 100).toFixed(1) + '%'
 })
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 const highlightedText = computed(() => {
-  let text = props.result.text
+  let text = escapeHtml(props.result.text)
   if (props.query) {
-    // Escape regex special chars and highlight query terms
     const escaped = props.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const regex = new RegExp(`(${escaped})`, 'gi')
     text = text.replace(regex, '<mark class="search-highlight">$1</mark>')
