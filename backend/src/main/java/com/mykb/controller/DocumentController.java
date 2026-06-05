@@ -21,18 +21,25 @@ public class DocumentController {
 
     @PostMapping("/upload")
     public ApiResponse<KnowledgeFile> upload(@RequestParam @NotNull Long kbId,
-                                              @RequestParam @NotNull MultipartFile file) {
-        log.info("Upload file: kbId={}, fileName={}, size={}", kbId, file.getOriginalFilename(), file.getSize());
-        KnowledgeFile result = documentService.uploadFile(kbId, file);
+                                              @RequestParam @NotNull MultipartFile file,
+                                              @RequestParam(required = false) String category) {
+        log.info("Upload file: kbId={}, fileName={}, size={}, category={}", kbId, file.getOriginalFilename(), file.getSize(), category);
+        KnowledgeFile result = documentService.uploadFile(kbId, file, category);
         return ApiResponse.success(result);
     }
 
     @GetMapping("/list")
     public ApiResponse<Page<KnowledgeFile>> list(@RequestParam @NotNull Long kbId,
+                                                  @RequestParam(required = false) String category,
                                                   @RequestParam(defaultValue = "0") int page,
                                                   @RequestParam(defaultValue = "10") int size) {
-        Page<KnowledgeFile> files = documentService.listDocuments(kbId, PageRequest.of(page, size));
+        Page<KnowledgeFile> files = documentService.listDocuments(kbId, category, PageRequest.of(page, size));
         return ApiResponse.success(files);
+    }
+
+    @GetMapping("/categories")
+    public ApiResponse<java.util.List<String>> categories(@RequestParam @NotNull Long kbId) {
+        return ApiResponse.success(documentService.getCategories(kbId));
     }
 
     @GetMapping("/{id}/status")

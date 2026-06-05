@@ -12,7 +12,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "kb_file", indexes = {
     @Index(name = "idx_kb_file_kb_id", columnList = "kb_id"),
-    @Index(name = "idx_kb_file_status", columnList = "status")
+    @Index(name = "idx_kb_file_status", columnList = "status"),
+    @Index(name = "idx_kb_file_category", columnList = "kb_id, category")
 })
 public class KnowledgeFile {
 
@@ -22,6 +23,9 @@ public class KnowledgeFile {
 
     @Column(name = "kb_id", nullable = false)
     private Long kbId;
+
+    @Column(length = 100)
+    private String category = "";
 
     @Column(name = "file_name", nullable = false, length = 255)
     private String fileName;

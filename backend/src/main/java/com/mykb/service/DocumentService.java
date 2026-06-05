@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -37,14 +38,17 @@ public class DocumentService {
     private String bucketName;
 
     @Transactional
-    public KnowledgeFile uploadFile(Long kbId, MultipartFile file) {
+    public KnowledgeFile uploadFile(Long kbId, MultipartFile file, String category) {
         String originalFilename = file.getOriginalFilename();
         String fileExt = "";
         if (originalFilename != null && originalFilename.contains(".")) {
             fileExt = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
+        String safeCategory = category != null ? category.trim() : "";
         String uuid = IdUtil.fastSimpleUUID();
-        String minioKey = kbId + "/" + uuid + "/" + originalFilename;
+        String minioKey = safeCategory.isEmpty()
+                ? kbId + "/" + uuid + "/" + originalFilename
+                : kbId + "/" + safeCategory + "/" + uuid + "/" + originalFilename;
 
         try {
             ensureBucketExists();
@@ -67,6 +71,7 @@ public class DocumentService {
 
         KnowledgeFile kf = new KnowledgeFile();
         kf.setKbId(kbId);
+        kf.setCategory(safeCategory);
         kf.setFileName(originalFilename);
         kf.setFileExt(fileExt);
         kf.setFileSize(file.getSize());
@@ -91,8 +96,15 @@ public class DocumentService {
         return saved;
     }
 
-    public Page<KnowledgeFile> listDocuments(Long kbId, PageRequest pageRequest) {
+    public Page<KnowledgeFile> listDocuments(Long kbId, String category, PageRequest pageRequest) {
+        if (category != null && !category.isBlank()) {
+            return fileRepository.findByKbIdAndCategory(kbId, category, pageRequest);
+        }
         return fileRepository.findByKbId(kbId, pageRequest);
+    }
+
+    public List<String> getCategories(Long kbId) {
+        return fileRepository.findDistinctCategoriesByKbId(kbId);
     }
 
     @Transactional

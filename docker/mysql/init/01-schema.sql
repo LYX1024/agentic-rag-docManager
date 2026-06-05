@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `kb_info` (
 CREATE TABLE IF NOT EXISTS `kb_file` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
     `kb_id` BIGINT NOT NULL,
+    `category` VARCHAR(100) DEFAULT '',
     `file_name` VARCHAR(255) NOT NULL,
     `file_ext` VARCHAR(20),
     `file_size` BIGINT,
@@ -43,7 +44,8 @@ CREATE TABLE IF NOT EXISTS `kb_file` (
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`kb_id`) REFERENCES `kb_info`(`id`) ON DELETE CASCADE,
     INDEX `idx_kb_file_kb_id` (`kb_id`),
-    INDEX `idx_kb_file_status` (`status`)
+    INDEX `idx_kb_file_status` (`status`),
+    INDEX `idx_kb_file_category` (`kb_id`, `category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==================== File Chunk Table ====================
