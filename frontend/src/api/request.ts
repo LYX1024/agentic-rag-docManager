@@ -41,7 +41,7 @@ service.interceptors.response.use(
     }
 
     if (res.code === 200 || res.code === 0) {
-      return response
+      return res
     } else {
       ElMessage.error(res.msg || '请求失败')
 

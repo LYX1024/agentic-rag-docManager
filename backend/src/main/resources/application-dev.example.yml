@@ -1,0 +1,8 @@
+# 开发环境配置模板
+# 复制为 application-dev.yml 并填入实际密码
+# application-dev.yml 已在 .gitignore 中，不会提交
+
+spring:
+  data:
+    redis:
+      password: your-redis-password

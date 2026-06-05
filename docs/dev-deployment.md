@@ -314,6 +314,8 @@ docker ps  # 检查 mysql、redis、minio 是否运行
 # 3. 启动 Java 后端
 cd D:\MyProject\myKnowledgeBase\backend
 mvn spring-boot:run
+
+# 注意：Windows环境上有无redis抢端口
 ```
 
 
@@ -352,6 +354,13 @@ npm run dev
 ```
 
 访问 http://localhost:5173
+
+### 5.4 首次配置后-启动 dev server
+
+```powershell
+cd D:\MyProject\myKnowledgeBase\frontend
+npm run dev
+```
 
 ---
 
