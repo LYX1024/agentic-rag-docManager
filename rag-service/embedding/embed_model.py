@@ -17,23 +17,30 @@ class EmbeddingClient:
         if not texts:
             return []
 
-        batch_size = 32
+        batch_size = 8
         all_embeddings = []
         total = len(texts)
 
         for i in range(0, total, batch_size):
             batch = texts[i:i + batch_size]
             logger.info(f"Embedding batch {i // batch_size + 1}/{(total + batch_size - 1) // batch_size}: {len(batch)} texts")
-            try:
-                resp = self.client.embeddings.create(
-                    model=self.model,
-                    input=batch,
-                )
-                batch_embeddings = [d.embedding for d in resp.data]
-                all_embeddings.extend(batch_embeddings)
-            except Exception as e:
-                logger.error(f"Embedding batch failed (offset={i}, size={len(batch)}): {e}")
-                raise
+            for attempt in range(3):
+                try:
+                    resp = self.client.embeddings.create(
+                        model=self.model,
+                        input=batch,
+                    )
+                    batch_embeddings = [d.embedding for d in resp.data]
+                    all_embeddings.extend(batch_embeddings)
+                    break
+                except Exception as e:
+                    if attempt < 2:
+                        logger.warning(f"Embedding retry {attempt + 1}: {e}")
+                        import time
+                        time.sleep(2)
+                    else:
+                        logger.error(f"Embedding batch failed after 3 attempts: {e}")
+                        raise
 
         return all_embeddings
 

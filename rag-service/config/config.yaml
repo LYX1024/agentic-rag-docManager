@@ -1,7 +1,11 @@
 embedding:
-  api_base: "https://api.openai.com/v1"
-  model: "text-embedding-3-small"
-  dimension: 1536
+  # api_base: "https://api.openai.com/v1"
+  # model: "text-embedding-3-small"
+  # dimension: 1536
+  api_base: "https://api.siliconflow.cn/v1"
+  api_key: "sk-orqqmlbrxludrxaienmmrjdnjefrlpxxjpcdhfsefkxtprdj"
+  model: "BAAI/bge-m3"
+  dimension: 1024
 
 vector_store:
   type: "faiss"
