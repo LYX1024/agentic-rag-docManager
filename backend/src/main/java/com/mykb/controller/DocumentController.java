@@ -4,11 +4,15 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mykb.dto.ApiResponse;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.service.DocumentService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
+import java.io.OutputStream;
 
 @Slf4j
 @RestController
@@ -51,5 +55,31 @@ public class DocumentController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         documentService.deleteDocument(id);
         return ApiResponse.success();
+    }
+
+    @GetMapping("/{id}/content")
+    public void preview(@PathVariable Long id, HttpServletResponse response) {
+        KnowledgeFile kf = documentService.getFile(id);
+        response.setContentType(getContentType(kf.getFileExt()));
+        response.setHeader("Content-Disposition", "inline; filename=\"" + kf.getFileName() + "\"");
+        try (InputStream in = documentService.getFileContent(id);
+             OutputStream out = response.getOutputStream()) {
+            in.transferTo(out);
+        } catch (Exception e) {
+            log.error("Preview failed: fileId={}, error={}", id, e.getMessage());
+            throw new com.mykb.exception.BusinessException("Failed to preview file: " + e.getMessage());
+        }
+    }
+
+    private String getContentType(String ext) {
+        return switch (ext.toLowerCase()) {
+            case ".pdf" -> "application/pdf";
+            case ".docx", ".doc" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case ".md" -> "text/markdown; charset=UTF-8";
+            case ".txt" -> "text/plain; charset=UTF-8";
+            case ".png" -> "image/png";
+            case ".jpg", ".jpeg" -> "image/jpeg";
+            default -> "application/octet-stream";
+        };
     }
 }

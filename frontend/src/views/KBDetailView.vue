@@ -100,8 +100,11 @@
               {{ formatDate(row.createdAt) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
+              <el-button type="primary" size="small" :icon="View" text @click="handlePreview(row)">
+                预览
+              </el-button>
               <el-popconfirm
                 title="确定要删除该文件吗？"
                 confirm-button-text="确定"
@@ -127,6 +130,13 @@
           />
         </div>
       </el-card>
+
+      <PreviewDialog
+        v-model="previewVisible"
+        :file-id="previewFileId"
+        :file-name="previewFileName"
+        :file-ext="previewFileExt"
+      />
     </div>
   </AppLayout>
 </template>
@@ -136,8 +146,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions } from 'element-plus'
-import { ArrowLeft, Search, UploadFilled, Delete } from '@element-plus/icons-vue'
+import { ArrowLeft, Search, UploadFilled, Delete, View } from '@element-plus/icons-vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import PreviewDialog from '@/components/kb/PreviewDialog.vue'
 import * as documentApi from '@/api/document'
 import type { Document, DocumentStatus } from '@/api/document'
 import * as kbApi from '@/api/knowledgeBase'
@@ -157,6 +168,10 @@ const searchKeyword = ref('')
 const filterCategory = ref('')
 const uploadCategory = ref('')
 const categories = ref<string[]>([])
+const previewVisible = ref(false)
+const previewFileId = ref(0)
+const previewFileName = ref('')
+const previewFileExt = ref('')
 
 onMounted(async () => {
   await fetchKBInfo()
@@ -269,6 +284,13 @@ function handleSearchInKB() {
 function handlePageChange(page: number) {
   currentPage.value = page
   fetchFileList()
+}
+
+function handlePreview(row: Document) {
+  previewFileId.value = row.id
+  previewFileName.value = row.fileName
+  previewFileExt.value = row.fileExt
+  previewVisible.value = true
 }
 
 async function handleDelete(row: Document) {

@@ -41,7 +41,7 @@ public class DocumentService {
         if (originalFilename != null && originalFilename.contains(".")) {
             fileExt = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
-        String safeCategory = category != null ? category.trim() : "";
+        String safeCategory = (category != null && !category.trim().isEmpty()) ? category.trim() : "default";
         String uuid = IdUtil.fastSimpleUUID();
         String minioKey = safeCategory.isEmpty()
                 ? kbId + "/" + uuid + "/" + originalFilename
@@ -142,6 +142,31 @@ public class DocumentService {
             throw new BusinessException(404, "Document not found");
         }
         return kf.getStatus();
+    }
+
+    public InputStream getFileContent(Long fileId) {
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
+        try {
+            return minioClient.getObject(
+                    io.minio.GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(kf.getFilePathInMinio())
+                            .build());
+        } catch (Exception e) {
+            log.error("Failed to read file from MinIO: fileId={}, error={}", fileId, e.getMessage());
+            throw new BusinessException("Failed to read file: " + e.getMessage());
+        }
+    }
+
+    public KnowledgeFile getFile(Long fileId) {
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
+        return kf;
     }
 
     private void ensureBucketExists() {
