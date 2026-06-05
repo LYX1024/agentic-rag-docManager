@@ -22,7 +22,7 @@ retriever:
 reranker:
   model_name: "BAAI/bge-reranker-large"
   top_n: 3
-  enabled: true
+  enabled: false
 
 ocr:
   use_rapid_ocr: true
