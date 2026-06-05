@@ -88,10 +88,9 @@ services:
 
   # ==================== RocketMQ NameServer ====================
   rocketmq-namesrv:
-    image: apache/rocketmq:5.1.4
+    image: rocketmqinc/rocketmq:4.9.6
     container_name: mykb-rocketmq-namesrv
     restart: unless-stopped
-    command: sh mqnamesrv
     environment:
       JAVA_OPT_EXT: "-Xms64m -Xmx128m"
       TZ: Asia/Shanghai
@@ -103,27 +102,18 @@ services:
       - "9876:9876"
     volumes:
       - rocketmq_namesrv_data:/home/rocketmq/store
-    healthcheck:
-      test: ["CMD", "sh", "-c", "netstat -an | grep 9876"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - mykb-net
 
   # ==================== RocketMQ Broker ====================
   rocketmq-broker:
-    image: apache/rocketmq:5.1.4
+    image: rocketmqinc/rocketmq:4.9.6
     container_name: mykb-rocketmq-broker
     restart: unless-stopped
     command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf
     environment:
       JAVA_OPT_EXT: "-Xms128m -Xmx256m"
       TZ: Asia/Shanghai
-    deploy:
-      resources:
-        limits:
-          memory: 384M
     ports:
       - "10911:10911"
       - "10909:10909"
@@ -131,8 +121,7 @@ services:
       - rocketmq_broker_data:/home/rocketmq/store
       - ./docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
     depends_on:
-      rocketmq-namesrv:
-        condition: service_healthy
+      - rocketmq-namesrv
     networks:
       - mykb-net
 

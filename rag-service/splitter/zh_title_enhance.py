@@ -6,7 +6,7 @@ chunk gets prepended with its full path for better standalone context.
 
 Adapted from LangChain-Chatchat.
 """
-from langchain.schema import Document
+from langchain_core.documents import Document
 from loguru import logger
 
 

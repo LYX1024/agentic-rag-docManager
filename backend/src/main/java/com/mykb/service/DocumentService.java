@@ -4,7 +4,6 @@ import cn.hutool.core.util.IdUtil;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.DocumentClient;
-import com.mykb.proto.document.DocumentService;
 import com.mykb.repository.FileChunkRepository;
 import com.mykb.repository.KnowledgeFileRepository;
 import io.minio.BucketExistsArgs;

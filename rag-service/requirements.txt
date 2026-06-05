@@ -1,41 +1,37 @@
 # gRPC
 grpcio>=1.60.0
 grpcio-tools>=1.60.0
-grpcio-health-checking>=1.60.0
 
-# LangChain ecosystem
-langchain==0.1.0
-langchain-community==0.1.0
-langchain-openai==0.0.2
+# LangChain 核心（仅需基础类型和文本分割器）
+langchain-core>=0.3.0
+langchain-text-splitters>=0.3.0
 
 # Vector store
-faiss-cpu==1.7.4
+faiss-cpu>=1.8.0
 
 # Document processing
-pymupdf==1.23.8
-python-docx==1.1.0
-python-pptx==0.6.23
-Pillow==10.2.0
-rapidocr-onnxruntime==1.3.11
+pymupdf>=1.23.8
+python-docx>=1.1.0
+python-pptx>=0.6.23
+rapidocr-onnxruntime>=1.3.19
 
 # Chinese text processing
-jieba==0.42.1
+jieba>=0.42.1
 
 # Storage (S3-compatible)
-boto3==1.34.0
+boto3>=1.34.0
 
-# Reranker
-sentence-transformers==2.2.2
+# Reranker（可选，默认禁用）
+sentence-transformers>=2.2.2
 
 # Configuration
-pydantic==2.5.0
-pydantic-settings==2.1.0
-PyYAML==6.0.1
+pydantic>=2.5.0
+PyYAML>=6.0
 
-# OpenAI client (for embedding + LLM)
-openai==1.6.0
+# OpenAI client（embedding + LLM 云端 API）
+openai>=1.6.0
 
 # Utilities
-loguru==0.7.2
-python-dotenv==1.0.0
+loguru>=0.7.0
+python-dotenv>=1.0.0
 numpy>=1.24.0

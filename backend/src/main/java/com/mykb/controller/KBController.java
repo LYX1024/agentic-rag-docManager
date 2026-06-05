@@ -48,7 +48,7 @@ public class KBController {
                 .findFirst()
                 .orElse(null);
         if (kb == null) {
-            return ApiResponse.error(404, "Knowledge base not found");
+            throw new com.mykb.exception.BusinessException(404, "Knowledge base not found");
         }
         return ApiResponse.success(kb);
     }

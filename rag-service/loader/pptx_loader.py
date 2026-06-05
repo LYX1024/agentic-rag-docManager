@@ -1,5 +1,5 @@
 """PPTX loader using python-pptx."""
-from langchain.schema import Document
+from langchain_core.documents import Document
 from loguru import logger
 
 

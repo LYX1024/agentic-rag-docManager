@@ -35,17 +35,51 @@
 
 ---
 
-## 环境要求
+## 版本速查
+
+### 运行时环境
 
 | 组件 | 版本 | 说明 |
 |------|------|------|
+| JDK | 17 | Eclipse Temurin 推荐 |
+| Maven | 3.9+（项目内置 mvnw） | `backend/.mvn/wrapper/` |
+| Python | 3.11 | venv / conda |
+| Node.js | 18+ | npm 9+ |
 | WSL2 | 任意发行版 | Ubuntu 22.04 推荐 |
 | Docker Desktop | 24+ | 启用 WSL2 Integration |
-| JDK | 17 | Eclipse Temurin 推荐 |
-| Maven | 3.9+ | 或使用 `mvnw` |
-| Python | 3.11 | Conda/venv 推荐 |
-| Node.js | 18+ | npm 9+ |
 | 可用内存 | ≥ 8GB | WSL2 分配建议 4GB |
+
+### 中间件（Docker 容器）
+
+| 服务 | 镜像 | 版本 | 端口 |
+|------|------|------|------|
+| MySQL | `mysql` | 8.0 | 3306 |
+| Redis | `redis` | 7-alpine | 6379 |
+| MinIO | `minio/minio` | latest | 9000/9001 |
+| RocketMQ NameServer | `rocketmqinc/rocketmq` | **4.9.6** | 9876 |
+| RocketMQ Broker | `rocketmqinc/rocketmq` | **4.9.6** | 10911/10909 |
+
+> RocketMQ 原计划使用 `apache/rocketmq:5.1.4`，因兼容性问题降级至 `rocketmqinc/rocketmq:4.9.6`。Java 端 `rocketmq-spring-boot-starter:2.2.3` 同时兼容 4.x 和 5.x，无需修改。
+
+### Python 核心依赖
+
+| 包 | 版本 | 说明 |
+|----|------|------|
+| grpcio | ≥ 1.60.0 | gRPC 运行时 |
+| langchain | ≥ 0.3.0 | LangChain 主包 |
+| langchain-core | ≥ 0.3.0 | Document 等核心类型 |
+| langchain-community | ≥ 0.3.0 | 文档加载器 |
+| langchain-openai | ≥ 0.3.0 | OpenAI 兼容 API |
+| langchain-text-splitters | ≥ 0.3.0 | 文本分割器 |
+| faiss-cpu | 1.7.4 | 向量相似度搜索 |
+| sentence-transformers | 2.2.2 | CrossEncoder 重排序（可选） |
+| openai | ≥ 1.6.0 | LLM / Embedding API |
+| boto3 | ≥ 1.34.0 | S3 兼容存储（MinIO） |
+| rapidocr-onnxruntime | 1.3.11 | 图片 OCR |
+
+> LangChain 系列原计划使用 `0.1.0`/`0.0.2`，但 PyPI 已 yanked 这些版本。统一升级至 `0.3.x` 稳定线，代码中的导入路径同步更新：
+> - `langchain.schema.Document` → `langchain_core.documents.Document`
+> - `langchain.text_splitter.RecursiveCharacterTextSplitter` → `langchain_text_splitters.RecursiveCharacterTextSplitter`
 
 ---
 
@@ -96,14 +130,24 @@ LLM_API_KEY=sk-your-key
 cd /mnt/d/MyProject/myKnowledgeBase
 
 # 只启动基础设施（排除 Python、Java、Nginx 的业务容器）
-docker compose up -d mysql redis minio rocketmq-namesrv rocketmq-broker
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio rocketmq-namesrv rocketmq-broker
+# 或
+# 不要指定服务名，让 compose 根据 profile 决定启动哪些
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 验证：
 
 ```bash
-docker compose ps
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
 # 预期：mysql/redis/minio/rocketmq-namesrv/rocketmq-broker 状态均为 Up (healthy)
+```
+
+快速关闭:
+
+```bash
+wsl --shutdown
+# 释放虚拟机内存，下次重新启动
 ```
 
 ### 2.3 验证各服务
@@ -190,6 +234,19 @@ python server.py
 ```
 RAG gRPC server starting on port 50051
 All services registered. Waiting for requests...
+```
+
+### 3.6 首次配置后-日常开发启动服务
+
+```powershell
+# 1. 进入目录
+cd D:\MyProject\myKnowledgeBase\rag-service
+
+# 2. 激活虚拟环境（每次打开新终端都需要）
+.\venv\Scripts\activate
+
+# 3. 启动服务
+python server.py
 ```
 
 ---
