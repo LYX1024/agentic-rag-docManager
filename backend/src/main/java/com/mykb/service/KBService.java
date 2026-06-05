@@ -6,6 +6,7 @@ import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.KBManagementClient;
 import com.mykb.proto.kb.KbManagement;
 import com.mykb.repository.KnowledgeBaseRepository;
+import com.mykb.repository.KnowledgeFileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,7 @@ import java.util.Map;
 public class KBService {
 
     private final KnowledgeBaseRepository kbRepository;
+    private final KnowledgeFileRepository fileRepository;
     private final KBManagementClient kbManagementClient;
 
     public KnowledgeBase createKB(KBCreateRequest request, Long userId) {
@@ -98,7 +100,7 @@ public class KBService {
         Map<String, Object> stats = new HashMap<>();
         stats.put("kbId", kb.getId());
         stats.put("name", kb.getName());
-        stats.put("fileCount", kbRepository.countByUserId(kb.getUserId()));
+        stats.put("fileCount", fileRepository.countByKbId(kbId));
 
         try {
             KbManagement.KBStatsResponse grpcStats = kbManagementClient.getStats(kbId);
