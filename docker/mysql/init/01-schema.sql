@@ -1,5 +1,7 @@
--- Placeholder SQL init script
--- Tables will be added in Phase 3 (Java Backend)
+-- Application user with least privileges (preferred over root for backend connection)
+CREATE USER IF NOT EXISTS 'mykb_app'@'%' IDENTIFIED BY 'mykb_app_pass';
+GRANT SELECT, INSERT, UPDATE, DELETE ON mykb.* TO 'mykb_app'@'%';
+FLUSH PRIVILEGES;
 
 -- ==================== User Table ====================
 CREATE TABLE IF NOT EXISTS `user` (
