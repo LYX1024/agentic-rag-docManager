@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package com.mykb.proto;
+option java_package = "com.mykb.proto.document";
+
+import "common.proto";
+
+// ==================== Document Service ====================
+
+service DocumentService {
+  rpc UploadDocument(UploadDocRequest) returns (DocumentInfo);
+  rpc ListDocuments(ListDocsRequest) returns (ListDocsResponse);
+  rpc DeleteDocument(DeleteDocRequest) returns (StatusResponse);
+  rpc ReprocessDocument(ReprocessDocRequest) returns (StatusResponse);
+  rpc GetDocumentStatus(GetDocStatusRequest) returns (DocStatusResponse);
+  rpc BatchUploadDocuments(BatchUploadDocsRequest) returns (BatchUploadDocsResponse);
+}
+
+// ==================== Messages ====================
+
+message UploadDocRequest {
+  int64 kb_id = 1;
+  string file_name = 2;
+  string file_ext = 3;
+  string minio_key = 4;       // MinIO object path (Java already uploaded)
+  int64 file_size = 5;
+}
+
+message ListDocsRequest {
+  int64 kb_id = 1;
+  PageRequest page = 2;
+  optional string status_filter = 3;
+}
+
+message DeleteDocRequest {
+  int64 file_id = 1;
+  int64 kb_id = 2;
+  string minio_key = 3;
+}
+
+message ReprocessDocRequest {
+  int64 file_id = 1;
+  int64 kb_id = 2;
+  string minio_key = 3;
+  string file_ext = 4;
+}
+
+message GetDocStatusRequest {
+  int64 file_id = 1;
+}
+
+message BatchUploadDocsRequest {
+  repeated UploadDocRequest documents = 1;
+}
+
+message DocumentInfo {
+  int64 id = 1;
+  int64 kb_id = 2;
+  string file_name = 3;
+  string file_ext = 4;
+  int64 file_size = 5;
+  string minio_key = 6;
+  int32 file_version = 7;
+  FileStatus status = 8;
+  int32 chunk_count = 9;
+  string error_msg = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message ListDocsResponse {
+  repeated DocumentInfo documents = 1;
+  PageInfo page = 2;
+}
+
+message DocStatusResponse {
+  int64 file_id = 1;
+  FileStatus status = 2;
+  int32 chunk_count = 3;
+  string error_msg = 4;
+}
+
+message BatchUploadDocsResponse {
+  repeated DocumentInfo documents = 1;
+  int32 success_count = 2;
+  int32 fail_count = 3;
+}

@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package com.mykb.proto;
+option java_package = "com.mykb.proto.kb";
+
+import "common.proto";
+
+// ==================== KB Management Service ====================
+
+service KBManagementService {
+  rpc CreateKB(CreateKBRequest) returns (KBInfo);
+  rpc ListKBs(ListKBRequest) returns (ListKBResponse);
+  rpc DeleteKB(DeleteKBRequest) returns (StatusResponse);
+  rpc UpdateKB(UpdateKBRequest) returns (KBInfo);
+  rpc GetKBStats(GetKBStatsRequest) returns (KBStatsResponse);
+}
+
+// ==================== Messages ====================
+
+message CreateKBRequest {
+  string name = 1;
+  string description = 2;
+  KBType vs_type = 3;
+  EmbedModel embed_model = 4;
+  int64 user_id = 5;
+}
+
+message ListKBRequest {
+  int64 user_id = 1;
+  PageRequest page = 2;
+}
+
+message DeleteKBRequest {
+  int64 kb_id = 1;
+}
+
+message UpdateKBRequest {
+  int64 kb_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message GetKBStatsRequest {
+  int64 kb_id = 1;
+}
+
+message KBInfo {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  KBType vs_type = 4;
+  EmbedModel embed_model = 5;
+  int32 file_count = 6;
+  int32 chunk_count = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListKBResponse {
+  repeated KBInfo kb_list = 1;
+  PageInfo page = 2;
+}
+
+message KBStatsResponse {
+  int64 kb_id = 1;
+  int32 file_count = 2;
+  int32 chunk_count = 3;
+  int64 total_file_size = 4;
+  map<string, int32> file_ext_distribution = 5;
+}

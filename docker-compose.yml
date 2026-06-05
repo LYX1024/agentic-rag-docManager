@@ -1,0 +1,207 @@
+version: '3.8'
+
+services:
+  # ==================== MySQL ====================
+  mysql:
+    image: mysql:8.0
+    container_name: mykb-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mykb-net
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: mykb-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mykb-net
+
+  # ==================== MinIO ====================
+  minio:
+    image: minio/minio:latest
+    container_name: mykb-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MINIO_API_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mykb-net
+
+  # ==================== RocketMQ NameServer ====================
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    container_name: mykb-rocketmq-namesrv
+    restart: unless-stopped
+    command: sh mqnamesrv
+    environment:
+      JAVA_OPT_EXT: "-Xms256m -Xmx256m"
+      TZ: Asia/Shanghai
+    ports:
+      - "9876:9876"
+    volumes:
+      - rocketmq_namesrv_data:/home/rocketmq/store
+    healthcheck:
+      test: ["CMD", "sh", "-c", "netstat -an | grep 9876"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mykb-net
+
+  # ==================== RocketMQ Broker ====================
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    container_name: mykb-rocketmq-broker
+    restart: unless-stopped
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf
+    environment:
+      JAVA_OPT_EXT: "-Xms512m -Xmx512m"
+      TZ: Asia/Shanghai
+    ports:
+      - "10911:10911"
+      - "10909:10909"
+    volumes:
+      - rocketmq_broker_data:/home/rocketmq/store
+      - ./docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
+    depends_on:
+      rocketmq-namesrv:
+        condition: service_healthy
+    networks:
+      - mykb-net
+
+  # ==================== Python RAG Service ====================
+  rag-service:
+    build:
+      context: ./rag-service
+      dockerfile: ../docker/rag-service/Dockerfile
+    container_name: mykb-rag-service
+    restart: unless-stopped
+    volumes:
+      - ./rag-service:/app
+      - ./proto:/proto
+      - faiss_data:/data/faiss
+    environment:
+      - EMBEDDING_API_BASE=${EMBEDDING_API_BASE}
+      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      - LLM_API_BASE=${LLM_API_BASE}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - TZ=Asia/Shanghai
+    ports:
+      - "${RAG_GRPC_PORT}:50051"
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; print('ok')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - mykb-net
+
+  # ==================== Java Backend ====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile
+    container_name: mykb-backend
+    restart: unless-stopped
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8mb4
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - GRPC_RAG_SERVICE_HOST=rag-service
+      - GRPC_RAG_SERVICE_PORT=50051
+      - ROCKETMQ_NAMESRV=rocketmq-namesrv:9876
+      - JWT_SECRET=${JWT_SECRET}
+      - TZ=Asia/Shanghai
+    ports:
+      - "${BACKEND_PORT}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mykb-net
+
+  # ==================== Nginx ====================
+  nginx:
+    image: nginx:alpine
+    container_name: mykb-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT}:80"
+      - "${NGINX_HTTPS_PORT}:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - mykb-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
+  rocketmq_namesrv_data:
+  rocketmq_broker_data:
+  faiss_data:
+
+networks:
+  mykb-net:
+    driver: bridge

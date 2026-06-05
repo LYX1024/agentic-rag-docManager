@@ -1,0 +1,65 @@
+# ==================== 环境变量（含敏感信息） ====================
+.env
+
+# ==================== IDE/编辑器 ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ==================== Java ====================
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+build/
+!src/main/**/build/
+!src/test/**/build/
+
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+*.egg
+instance/
+.pytest_cache/
+
+# ==================== Node / Vue ====================
+node_modules/
+dist/
+.npm
+.eslintcache
+*.tsbuildinfo
+
+# ==================== Docker ====================
+docker-compose.override.yml
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==================== 数据卷 ====================
+data/
+*.db
+*.sqlite
+
+# ==================== 生成文件 ====================
+rag-service/generated/
+
+# ==================== 日志 ====================
+logs/
+*.log
+
+# ==================== 敏感配置 ====================
+*.pem
+*.key
+credentials.json

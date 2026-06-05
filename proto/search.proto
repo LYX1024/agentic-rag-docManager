@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package com.mykb.proto;
+option java_package = "com.mykb.proto.search";
+
+import "common.proto";
+
+// ==================== Search Service ====================
+
+service SearchService {
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc HybridSearch(HybridSearchRequest) returns (HybridSearchResponse);
+  rpc Rerank(RerankRequest) returns (RerankResponse);
+}
+
+// ==================== Messages ====================
+
+message SearchRequest {
+  string query = 1;
+  int64 kb_id = 2;
+  string kb_name = 3;
+  int32 top_k = 4;
+  float score_threshold = 5;
+  string search_type = 6;      // "vector" | "bm25"
+}
+
+message HybridSearchRequest {
+  string query = 1;
+  int64 kb_id = 2;
+  string kb_name = 3;
+  int32 top_k = 4;
+  float score_threshold = 5;
+  float bm25_weight = 6;        // default 0.3
+  float vector_weight = 7;      // default 0.7
+  int32 rrf_k = 8;              // RRF constant, default 60
+  bool use_reranker = 9;
+  string reranker_model = 10;
+  int32 rerank_top_n = 11;
+}
+
+message RerankRequest {
+  string query = 1;
+  repeated ChunkInfo candidates = 2;
+  int32 top_n = 3;
+  string model_name = 4;
+}
+
+message SearchResult {
+  string chunk_id = 1;
+  string text = 2;
+  float score = 3;
+  string file_name = 4;
+  string file_ext = 5;
+  int32 chunk_index = 6;
+  string vs_doc_id = 7;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+  int32 total = 2;
+  string search_type = 3;
+  int64 took_ms = 4;
+}
+
+message HybridSearchResponse {
+  repeated SearchResult results = 1;
+  int32 total = 2;
+  int32 bm25_count = 3;
+  int32 vector_count = 4;
+  int32 fused_count = 5;
+  int32 reranked_count = 6;
+  int64 took_ms = 7;
+}
+
+message RerankResponse {
+  repeated ChunkInfo ranked_results = 1;
+  int64 took_ms = 2;
+}

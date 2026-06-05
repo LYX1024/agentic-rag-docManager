@@ -1,0 +1,37 @@
+embedding:
+  api_base: "https://api.openai.com/v1"
+  model: "text-embedding-3-small"
+  dimension: 1536
+
+vector_store:
+  type: "faiss"
+  persist_directory: "/data/faiss"
+
+text_splitter:
+  chunk_size: 250
+  chunk_overlap: 50
+  separators: ["\n\n", "\n", "。", "！", "？", "，", " ", ""]
+
+retriever:
+  bm25_weight: 0.3
+  vector_weight: 0.7
+  top_k: 5
+  score_threshold: 0.35
+  rrf_k: 60
+
+reranker:
+  model_name: "BAAI/bge-reranker-large"
+  top_n: 3
+  enabled: true
+
+ocr:
+  use_rapid_ocr: true
+  ocr_lang: "ch"
+
+storage:
+  bucket: "knowledge-base"
+  temp_dir: "/tmp/rag-service"
+
+llm:
+  model: "gpt-4o-mini"
+  temperature: 0.7
