@@ -73,9 +73,9 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             )
             kb_service.save()
 
-            # Store in registry
+            # Use Java-side database ID as the registry key
             now = datetime.now().isoformat()
-            kb_id = len(self._registry) + 1
+            kb_id = request.user_id
             self._registry[str(kb_id)] = {
                 "id": kb_id,
                 "name": name,

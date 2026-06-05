@@ -33,8 +33,10 @@ public class KBService {
         kb.setEmbedModel(request.embedModel() != null ? request.embedModel() : "bge-m3");
         kb.setUserId(userId);
 
+        // Insert to MySQL first to get the ID
         kbMapper.insert(kb);
 
+        // Init on Python side
         try {
             kbManagementClient.createKB(
                     kb.getName(),
@@ -42,10 +44,11 @@ public class KBService {
                     kb.getVsType(),
                     kb.getEmbedModel(),
                     kb.getId());
-            log.info("KB created on Python side: kbId={}", kb.getId());
+            log.info("KB created: kbId={}, name={}", kb.getId(), kb.getName());
         } catch (Exception e) {
-            log.error("KB saved locally but Python init failed: kbId={}, error={}", kb.getId(), e.getMessage());
-            throw new BusinessException("Knowledge base created locally but Python service init failed: " + e.getMessage());
+            log.error("Python init failed, rolling back: kbId={}, error={}", kb.getId(), e.getMessage());
+            kbMapper.deleteById(kb.getId());
+            throw new BusinessException("Failed to create knowledge base: " + e.getMessage());
         }
 
         return kb;

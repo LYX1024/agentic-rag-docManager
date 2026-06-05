@@ -21,7 +21,7 @@ class FAISSService(KBService):
         self._dimension: Optional[int] = None
         self._index_file = self.persist_dir / f"{kb_name}.faiss"
         self._docstore_file = self.persist_dir / f"{kb_name}.json"
-        self._load()
+        self.load()
 
     @property
     def _index_path(self):
@@ -115,7 +115,7 @@ class FAISSService(KBService):
         with open(self._docstore_path, "w", encoding="utf-8") as f:
             json.dump({"docstore": self.docstore, "dimension": self._dimension}, f, ensure_ascii=False)
 
-    def _load(self):
+    def load(self):
         if self._index_file.exists() and self._docstore_file.exists():
             try:
                 self.index = faiss.read_index(self._index_path)

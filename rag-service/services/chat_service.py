@@ -74,6 +74,18 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
             )
         return self._retrievers[kb_name]
 
+    def _get_kb_name(self, kb_id: int) -> str:
+        """Resolve kb_id to kb_name via the registry."""
+        registry_path = self.persist_dir / "_kb_registry.json"
+        if registry_path.exists():
+            import json
+            with open(registry_path, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            for _, entry in registry.items():
+                if entry.get("id") == kb_id:
+                    return entry["name"]
+        return f"kb_{kb_id}"
+
     def _build_prompt(self, query: str, context_text: str) -> str:
         """Build the RAG prompt from template."""
         return RAG_PROMPT_TEMPLATE.format(context=context_text, query=query)
@@ -86,7 +98,7 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
         """
         try:
             query = request.query
-            kb_name = request.kb_name
+            kb_name = request.kb_name if request.kb_name else self._get_kb_name(request.kb_id)
             top_k = request.top_k or self.config.retriever.top_k
             score_threshold = request.score_threshold or self.config.retriever.score_threshold
             session_id = request.session_id or str(uuid.uuid4())

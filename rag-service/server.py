@@ -21,6 +21,9 @@ def serve():
     from generated import search_pb2_grpc
     from generated import chat_pb2_grpc
 
+    # Ensure all KBService implementations are registered
+    from kb_service import faiss_service  # noqa: F401
+
     from services.kb_management_service import KBManagementServicer
     from services.document_service import DocumentServicer
     from services.search_service import SearchServicer
