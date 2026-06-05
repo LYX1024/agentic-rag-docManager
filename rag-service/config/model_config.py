@@ -7,9 +7,10 @@ import yaml
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-load_dotenv()
-
+# Load .env from project root (2 levels up from rag-service/config/)
 CONFIG_DIR = Path(__file__).parent
+PROJECT_ROOT = CONFIG_DIR.parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 DEFAULT_CONFIG = CONFIG_DIR / "config.yaml"
 
 

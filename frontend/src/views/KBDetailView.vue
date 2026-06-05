@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="kb-detail">
+    <div class="kb-detail" @dragenter.prevent @dragover.prevent @drop.prevent>
       <div class="detail-header">
         <div class="header-left">
           <el-button :icon="ArrowLeft" @click="goBack">返回</el-button>

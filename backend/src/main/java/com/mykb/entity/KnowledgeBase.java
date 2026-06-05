@@ -37,4 +37,7 @@ public class KnowledgeBase {
 
     @TableField("updated_at")
     private LocalDateTime updatedAt;
+
+    @TableField(exist = false)
+    private Integer fileCount;
 }

@@ -111,7 +111,7 @@ public class ChatController {
                 } catch (IOException ex) {
                     log.error("Failed to send error event", ex);
                 }
-                emitter.completeWithError(e);
+                emitter.complete();
             }
         }, "rag-chat-" + finalSessionId).start();
 

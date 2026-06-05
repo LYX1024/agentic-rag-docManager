@@ -79,15 +79,14 @@ public class DocumentService {
 
         try {
             documentClient.uploadDocument(kbId, originalFilename, fileExt, file.getSize(), minioKey);
-            kf.setStatus("COMPLETED");
+            kf.setStatus("PARSING");
             fileMapper.updateById(kf);
-            log.info("Document processing completed by Python service: fileId={}", kf.getId());
+            log.info("Async ingestion submitted: fileId={}", kf.getId());
         } catch (Exception e) {
             kf.setStatus("FAILED");
             kf.setErrorMsg(e.getMessage());
             fileMapper.updateById(kf);
-            log.error("Python document processing failed: fileId={}, error={}", kf.getId(), e.getMessage(), e);
-            throw new BusinessException("Document uploaded to MinIO but Python processing failed: " + e.getMessage());
+            log.error("Failed to submit ingestion: fileId={}, error={}", kf.getId(), e.getMessage(), e);
         }
 
         return kf;

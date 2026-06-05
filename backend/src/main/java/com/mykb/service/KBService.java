@@ -56,9 +56,13 @@ public class KBService {
 
     public Page<KnowledgeBase> listKBs(Long userId, int pageNum, int pageSize) {
         Page<KnowledgeBase> page = new Page<>(pageNum, pageSize);
-        return kbMapper.selectPage(page, new LambdaQueryWrapper<KnowledgeBase>()
+        Page<KnowledgeBase> result = kbMapper.selectPage(page, new LambdaQueryWrapper<KnowledgeBase>()
                 .eq(KnowledgeBase::getUserId, userId)
                 .orderByDesc(KnowledgeBase::getCreatedAt));
+        for (KnowledgeBase kb : result.getRecords()) {
+            kb.setFileCount(fileMapper.countByKbId(kb.getId()).intValue());
+        }
+        return result;
     }
 
     public void deleteKB(Long kbId) {
