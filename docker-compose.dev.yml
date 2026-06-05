@@ -1,0 +1,23 @@
+# 开发环境覆盖文件
+# 使用方式: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# 效果:
+#   - 仅启动基础设施（MySQL/Redis/MinIO/RocketMQ）
+#   - 不启动 backend / rag-service / nginx（这些在本地运行）
+#   - 所有端口保持暴露方便本地连接
+
+services:
+  # 开发时不启动后端服务
+  backend:
+    profiles:
+      - prod
+
+  # 开发时不启动 Python RAG 服务
+  rag-service:
+    profiles:
+      - prod
+
+  # 开发时不启动 Nginx（前端用 Vite dev server）
+  nginx:
+    profiles:
+      - prod
