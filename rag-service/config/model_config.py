@@ -75,6 +75,7 @@ class AppConfig(BaseModel):
     ocr: OCRConfig = OCRConfig()
     storage: StorageConfig = StorageConfig()
     llm: LLMConfig = LLMConfig()
+    java_backend_url: str = os.getenv("JAVA_BACKEND_URL", "http://localhost:8080")
 
 
 def load_config(config_path: Optional[Path] = None) -> AppConfig:

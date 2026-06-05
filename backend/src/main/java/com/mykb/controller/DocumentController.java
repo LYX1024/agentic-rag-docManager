@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -69,6 +70,16 @@ public class DocumentController {
             log.error("Preview failed: fileId={}, error={}", id, e.getMessage());
             throw new com.mykb.exception.BusinessException("Failed to preview file: " + e.getMessage());
         }
+    }
+
+    @PutMapping("/ingestion-callback")
+    public ApiResponse<Void> ingestionCallback(@RequestBody Map<String, Object> body) {
+        String minioKey = (String) body.get("minio_key");
+        String status = (String) body.get("status");
+        int chunkCount = body.get("chunk_count") != null ? ((Number) body.get("chunk_count")).intValue() : 0;
+        String errorMsg = (String) body.getOrDefault("error_msg", "");
+        documentService.syncIngestionStatus(minioKey, status, chunkCount, errorMsg);
+        return ApiResponse.success();
     }
 
     private String getContentType(String ext) {

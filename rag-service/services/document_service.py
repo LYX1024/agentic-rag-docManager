@@ -1,8 +1,11 @@
 """gRPC DocumentService implementation."""
+import json
 import uuid
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
 import grpc
 from loguru import logger
@@ -155,6 +158,30 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             _doc_status_store[doc_id]["error_msg"] = result.error_msg or "Unknown error"
             _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
             logger.error(f"Ingestion failed: {file_name}: {result.error_msg}")
+
+        # Callback Java to sync status to MySQL
+        self._notify_java(minio_key, result)
+
+    def _notify_java(self, minio_key: str, result):
+        """Notify Java backend of ingestion result via HTTP callback."""
+        try:
+            java_url = self.config.java_backend_url or "http://localhost:8080"
+            payload = json.dumps({
+                "minio_key": minio_key,
+                "status": "COMPLETED" if result.success else "FAILED",
+                "chunk_count": result.chunk_count,
+                "error_msg": result.error_msg or "",
+            }).encode("utf-8")
+            req = Request(
+                f"{java_url}/api/doc/ingestion-callback",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="PUT",
+            )
+            urlopen(req, timeout=5)
+            logger.debug(f"Notified Java: {minio_key} status={payload}")
+        except Exception as e:
+            logger.warning(f"Failed to notify Java: {e}")
 
     def ListDocuments(self, request, context):
         """List documents in a knowledge base."""

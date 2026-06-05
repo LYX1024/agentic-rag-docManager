@@ -168,6 +168,24 @@ public class DocumentService {
         return kf;
     }
 
+    public void syncIngestionStatus(String minioKey, String status, int chunkCount, String errorMsg) {
+        KnowledgeFile kf = fileMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<KnowledgeFile>()
+                        .eq(KnowledgeFile::getFilePathInMinio, minioKey));
+        if (kf == null) {
+            log.warn("Ingestion callback for unknown file: minioKey={}", minioKey);
+            return;
+        }
+        kf.setStatus(status);
+        kf.setChunkCount(chunkCount);
+        if (errorMsg != null && !errorMsg.isEmpty()) {
+            kf.setErrorMsg(errorMsg);
+        }
+        fileMapper.updateById(kf);
+        log.info("Ingestion status synced: fileId={}, minioKey={}, status={}, chunks={}",
+                kf.getId(), minioKey, status, chunkCount);
+    }
+
     private void ensureBucketExists() {
         try {
             boolean exists = minioClient.bucketExists(
