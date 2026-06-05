@@ -7,6 +7,20 @@
           <h1>{{ kbName }}</h1>
         </div>
         <div class="header-right">
+          <el-select
+            v-model="filterCategory"
+            placeholder="全部分类"
+            clearable
+            style="width: 160px; margin-right: 12px"
+            @change="handleCategoryChange"
+          >
+            <el-option
+              v-for="cat in categories"
+              :key="cat"
+              :label="cat"
+              :value="cat"
+            />
+          </el-select>
           <el-input
             v-model="searchKeyword"
             placeholder="搜索知识库文件..."
@@ -23,24 +37,28 @@
       </div>
 
       <div class="upload-section">
-        <el-upload
-          ref="uploadRef"
-          class="upload-area"
-          :action="uploadUrl"
-          :headers="uploadHeaders"
-          :on-success="handleUploadSuccess"
-          :on-error="handleUploadError"
-          :before-upload="beforeUpload"
-          :show-file-list="false"
-          drag
-          multiple
-        >
-          <el-icon class="upload-icon" :size="48"><UploadFilled /></el-icon>
-          <div class="upload-text">
-            <p class="upload-title">将文件拖到此处，或点击上传</p>
-            <p class="upload-hint">支持 PDF、Word、Excel、TXT、Markdown 等格式文件</p>
-          </div>
-        </el-upload>
+        <div class="upload-row">
+          <el-input
+            v-model="uploadCategory"
+            placeholder="输入分类（可选，如：技术文档、合同）"
+            style="width: 220px; margin-right: 12px"
+            clearable
+          />
+          <el-upload
+            ref="uploadRef"
+            class="upload-area"
+            :http-request="customUpload"
+            :show-file-list="false"
+            drag
+            multiple
+          >
+            <el-icon class="upload-icon" :size="48"><UploadFilled /></el-icon>
+            <div class="upload-text">
+              <p class="upload-title">将文件拖到此处，或点击上传</p>
+              <p class="upload-hint">支持 PDF、Word、Excel、TXT、Markdown 等格式文件</p>
+            </div>
+          </el-upload>
+        </div>
       </div>
 
       <el-card class="file-table-card">
@@ -53,15 +71,21 @@
           style="width: 100%"
           stripe
         >
-          <el-table-column prop="filename" label="文件名" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="fileName" label="文件名" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="category" label="分类" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.category" size="small" type="success">{{ row.category }}</el-tag>
+              <span v-else class="no-category">-</span>
+            </template>
+          </el-table-column>
           <el-table-column label="文件大小" width="110" align="center">
             <template #default="{ row }">
               {{ formatFileSize(row.fileSize) }}
             </template>
           </el-table-column>
-          <el-table-column prop="fileType" label="类型" width="90" align="center">
+          <el-table-column prop="fileExt" label="类型" width="90" align="center">
             <template #default="{ row }">
-              <el-tag size="small">{{ row.fileType.toUpperCase() }}</el-tag>
+              <el-tag size="small">{{ (row.fileExt || '').replace('.', '').toUpperCase() || '-' }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="120" align="center">
@@ -108,10 +132,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import type { UploadProps, UploadUserFile } from 'element-plus'
+import type { UploadRequestOptions } from 'element-plus'
 import { ArrowLeft, Search, UploadFilled, Delete } from '@element-plus/icons-vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import * as documentApi from '@/api/document'
@@ -130,16 +154,14 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const tableLoading = ref(false)
 const searchKeyword = ref('')
-
-const uploadUrl = computed(() => `/api/knowledge-base/${kbId}/documents/upload`)
-const uploadHeaders = computed(() => {
-  const token = localStorage.getItem('sa-token') || ''
-  return { 'sa-token': token }
-})
+const filterCategory = ref('')
+const uploadCategory = ref('')
+const categories = ref<string[]>([])
 
 onMounted(async () => {
   await fetchKBInfo()
   await fetchFileList()
+  await fetchCategories()
 })
 
 async function fetchKBInfo() {
@@ -154,14 +176,43 @@ async function fetchKBInfo() {
 async function fetchFileList() {
   tableLoading.value = true
   try {
-    const res = await documentApi.listDocs(kbId, currentPage.value, pageSize.value)
-    fileList.value = res.data.records
-    total.value = res.data.total
+    const category = filterCategory.value || undefined
+    const res = await documentApi.listDocs(kbId, category, currentPage.value - 1, pageSize.value)
+    fileList.value = res.data.content || []
+    total.value = res.data.totalElements || 0
   } catch {
     ElMessage.error('获取文件列表失败')
   } finally {
     tableLoading.value = false
   }
+}
+
+async function fetchCategories() {
+  try {
+    const res = await documentApi.getCategories(kbId)
+    categories.value = res.data || []
+  } catch {
+    // non-critical
+  }
+}
+
+async function customUpload(options: UploadRequestOptions) {
+  try {
+    const category = uploadCategory.value || undefined
+    await documentApi.uploadFile(kbId, options.file, category)
+    ElMessage.success('文件上传成功')
+    currentPage.value = 1
+    uploadCategory.value = ''
+    await fetchFileList()
+    await fetchCategories()
+  } catch {
+    ElMessage.error('文件上传失败')
+  }
+}
+
+function handleCategoryChange() {
+  currentPage.value = 1
+  fetchFileList()
 }
 
 function statusType(status: DocumentStatus): string {
@@ -220,30 +271,12 @@ function handlePageChange(page: number) {
   fetchFileList()
 }
 
-const handleUploadSuccess: UploadProps['onSuccess'] = () => {
-  ElMessage.success('文件上传成功')
-  currentPage.value = 1
-  fetchFileList()
-}
-
-const handleUploadError: UploadProps['onError'] = () => {
-  ElMessage.error('文件上传失败')
-}
-
-const beforeUpload: UploadProps['beforeUpload'] = (file) => {
-  const maxSize = 50 * 1024 * 1024 // 50MB
-  if (file.size > maxSize) {
-    ElMessage.warning('文件大小不能超过 50MB')
-    return false
-  }
-  return true
-}
-
 async function handleDelete(row: Document) {
   try {
-    await documentApi.deleteDoc(row.id, kbId)
+    await documentApi.deleteDoc(row.id)
     ElMessage.success('删除成功')
     fetchFileList()
+    fetchCategories()
   } catch {
     ElMessage.error('删除失败')
   }
@@ -281,43 +314,52 @@ async function handleDelete(row: Document) {
   .upload-section {
     margin-bottom: 24px;
 
-    .upload-area {
-      width: 100%;
+    .upload-row {
+      display: flex;
+      align-items: stretch;
 
-      :deep(.el-upload-dragger) {
-        width: 100%;
-        padding: 32px;
-        border: 2px dashed #d9d9d9;
-        border-radius: 8px;
-        transition: border-color 0.3s;
+      .upload-area {
+        flex: 1;
 
-        &:hover {
-          border-color: #409eff;
+        :deep(.el-upload-dragger) {
+          width: 100%;
+          padding: 24px;
+          border: 2px dashed #d9d9d9;
+          border-radius: 8px;
+          transition: border-color 0.3s;
+
+          &:hover {
+            border-color: #409eff;
+          }
         }
       }
+    }
 
-      .upload-icon {
+    .upload-icon {
+      color: #c0c4cc;
+      margin-bottom: 8px;
+    }
+
+    .upload-text {
+      .upload-title {
+        font-size: 14px;
+        color: #606266;
+        margin: 0 0 4px;
+      }
+
+      .upload-hint {
+        font-size: 12px;
         color: #c0c4cc;
-        margin-bottom: 12px;
-      }
-
-      .upload-text {
-        .upload-title {
-          font-size: 14px;
-          color: #606266;
-          margin: 0 0 6px;
-        }
-
-        .upload-hint {
-          font-size: 12px;
-          color: #c0c4cc;
-          margin: 0;
-        }
+        margin: 0;
       }
     }
   }
 
   .file-table-card {
+    .no-category {
+      color: #c0c4cc;
+    }
+
     .pagination-wrapper {
       display: flex;
       justify-content: flex-end;
