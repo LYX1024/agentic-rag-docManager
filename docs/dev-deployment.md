@@ -264,12 +264,20 @@ mvn compile
 
 ### 4.2 配置连接地址
 
+设置环境变量（PowerShell，每次新终端需执行）：
+
+```powershell
+$env:REDIS_PASSWORD="lyx1024"
+```
+
+> 或直接在系统环境变量中配置。`.env` 文件仅被 Docker/Python 自动加载，Java 需要手动设置或通过 IDE 配置。
+
 编辑 `backend/src/main/resources/application.yml`，确认以下配置（默认值指向 localhost）：
 
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/mykb?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8mb4
+    url: jdbc:mysql://localhost:3306/mykb?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
   data:
     redis:
       host: localhost
