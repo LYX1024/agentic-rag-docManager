@@ -1,6 +1,9 @@
 package com.mykb.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -9,33 +12,24 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "kb_chunk", indexes = {
-    @Index(name = "idx_kb_chunk_file_id", columnList = "file_id")
-})
+@TableName("kb_chunk")
 public class FileChunk {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "file_id", nullable = false)
+    @TableField("file_id")
     private Long fileId;
 
-    @Column(name = "chunk_index", nullable = false)
+    @TableField("chunk_index")
     private Integer chunkIndex;
 
-    @Column(name = "chunk_text_hash", nullable = false, length = 64)
+    @TableField("chunk_text_hash")
     private String chunkTextHash;
 
-    @Column(name = "vs_doc_id", length = 255)
+    @TableField("vs_doc_id")
     private String vsDocId;
 
-    @Column(name = "created_at", updatable = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
 }

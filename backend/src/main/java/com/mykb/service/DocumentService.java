@@ -1,11 +1,13 @@
 package com.mykb.service;
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.DocumentClient;
-import com.mykb.repository.FileChunkRepository;
-import com.mykb.repository.KnowledgeFileRepository;
+import com.mykb.mapper.FileChunkMapper;
+import com.mykb.mapper.KnowledgeFileMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -14,10 +16,7 @@ import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
@@ -29,14 +28,13 @@ import java.util.List;
 public class DocumentService {
 
     private final MinioClient minioClient;
-    private final KnowledgeFileRepository fileRepository;
-    private final FileChunkRepository chunkRepository;
+    private final KnowledgeFileMapper fileMapper;
+    private final FileChunkMapper chunkMapper;
     private final DocumentClient documentClient;
 
     @Value("${minio.bucket}")
     private String bucketName;
 
-    @Transactional
     public KnowledgeFile uploadFile(Long kbId, MultipartFile file, String category) {
         String originalFilename = file.getOriginalFilename();
         String fileExt = "";
@@ -76,40 +74,42 @@ public class DocumentService {
         kf.setFileSize(file.getSize());
         kf.setFilePathInMinio(minioKey);
         kf.setStatus("UPLOADED");
-        KnowledgeFile saved = fileRepository.save(kf);
-        log.info("KnowledgeFile saved: fileId={}, kbId={}, filename={}", saved.getId(), kbId, originalFilename);
+        fileMapper.insert(kf);
+        log.info("KnowledgeFile saved: fileId={}, kbId={}, filename={}", kf.getId(), kbId, originalFilename);
 
         try {
             documentClient.uploadDocument(kbId, originalFilename, fileExt, file.getSize(), minioKey);
-            saved.setStatus("COMPLETED");
-            fileRepository.save(saved);
-            log.info("Document processing completed by Python service: fileId={}", saved.getId());
+            kf.setStatus("COMPLETED");
+            fileMapper.updateById(kf);
+            log.info("Document processing completed by Python service: fileId={}", kf.getId());
         } catch (Exception e) {
-            saved.setStatus("FAILED");
-            saved.setErrorMsg(e.getMessage());
-            fileRepository.save(saved);
-            log.error("Python document processing failed: fileId={}, error={}", saved.getId(), e.getMessage(), e);
+            kf.setStatus("FAILED");
+            kf.setErrorMsg(e.getMessage());
+            fileMapper.updateById(kf);
+            log.error("Python document processing failed: fileId={}, error={}", kf.getId(), e.getMessage(), e);
             throw new BusinessException("Document uploaded to MinIO but Python processing failed: " + e.getMessage());
         }
 
-        return saved;
+        return kf;
     }
 
-    public Page<KnowledgeFile> listDocuments(Long kbId, String category, PageRequest pageRequest) {
+    public IPage<KnowledgeFile> listDocuments(Long kbId, String category, int pageNum, int pageSize) {
+        Page<KnowledgeFile> page = new Page<>(pageNum, pageSize);
         if (category != null && !category.isBlank()) {
-            return fileRepository.findByKbIdAndCategory(kbId, category, pageRequest);
+            return fileMapper.selectPageByKbIdAndCategory(page, kbId, category);
         }
-        return fileRepository.findByKbId(kbId, pageRequest);
+        return fileMapper.selectPageByKbId(page, kbId);
     }
 
     public List<String> getCategories(Long kbId) {
-        return fileRepository.findDistinctCategoriesByKbId(kbId);
+        return fileMapper.selectDistinctCategoriesByKbId(kbId);
     }
 
-    @Transactional
     public void deleteDocument(Long fileId) {
-        KnowledgeFile kf = fileRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(404, "Document not found"));
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
 
         try {
             minioClient.removeObject(
@@ -123,7 +123,7 @@ public class DocumentService {
             log.warn("MinIO deletion failed (non-fatal): key={}, error={}", kf.getFilePathInMinio(), e.getMessage());
         }
 
-        chunkRepository.deleteByFileId(fileId);
+        chunkMapper.deleteByFileId(fileId);
         log.info("Chunks deleted for fileId={}", fileId);
 
         try {
@@ -132,13 +132,15 @@ public class DocumentService {
             log.warn("Python document deletion failed (non-fatal): fileId={}, error={}", fileId, e.getMessage());
         }
 
-        fileRepository.delete(kf);
+        fileMapper.deleteById(kf.getId());
         log.info("Document deleted: fileId={}", fileId);
     }
 
     public String getDocumentStatus(Long fileId) {
-        KnowledgeFile kf = fileRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(404, "Document not found"));
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
         return kf.getStatus();
     }
 

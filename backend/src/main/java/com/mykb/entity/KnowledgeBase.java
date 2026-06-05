@@ -1,55 +1,40 @@
 package com.mykb.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "kb_info")
+@TableName("kb_info")
 public class KnowledgeBase {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @TableField("description")
     private String description;
 
-    @Column(name = "vs_type", nullable = false, length = 20)
+    @TableField("vs_type")
     private String vsType = "FAISS";
 
-    @Column(name = "embed_model", nullable = false, length = 50)
+    @TableField("embed_model")
     private String embedModel = "bge-m3";
 
-    @Column(name = "user_id", nullable = false)
+    @TableField("user_id")
     private Long userId;
 
-    @Column(name = "created_at", updatable = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @TableField("updated_at")
     private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "kbId", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<KnowledgeFile> files;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

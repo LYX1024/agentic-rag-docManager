@@ -1,13 +1,12 @@
 package com.mykb.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mykb.dto.ApiResponse;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.service.DocumentService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,11 +28,11 @@ public class DocumentController {
     }
 
     @GetMapping("/list")
-    public ApiResponse<Page<KnowledgeFile>> list(@RequestParam @NotNull Long kbId,
+    public ApiResponse<IPage<KnowledgeFile>> list(@RequestParam @NotNull Long kbId,
                                                   @RequestParam(required = false) String category,
                                                   @RequestParam(defaultValue = "0") int page,
                                                   @RequestParam(defaultValue = "10") int size) {
-        Page<KnowledgeFile> files = documentService.listDocuments(kbId, category, PageRequest.of(page, size));
+        IPage<KnowledgeFile> files = documentService.listDocuments(kbId, category, page + 1, size);
         return ApiResponse.success(files);
     }
 

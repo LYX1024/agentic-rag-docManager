@@ -302,6 +302,20 @@ mvn spring-boot:run
 curl http://localhost:8080/actuator/health
 # 预期: {"status":"UP"}
 ```
+### 4.5 首次配置后-日常开发启动服务
+
+```powershell
+# 1. 确保基础设施已启动（WSL2 Docker 中）
+docker ps  # 检查 mysql、redis、minio 是否运行
+
+# 2. 确保 Python RAG 服务已启动
+# 在另一个终端：cd rag-service && .\venv\Scripts\activate && python server.py
+
+# 3. 启动 Java 后端
+cd D:\MyProject\myKnowledgeBase\backend
+mvn spring-boot:run
+```
+
 
 ---
 
