@@ -66,7 +66,7 @@ public class ChatController {
         }
 
         String finalSessionId = effectiveSessionId;
-        Thread.ofVirtual().start(() -> {
+        new Thread(() -> {
             StringBuilder fullContent = new StringBuilder();
             StringBuilder sourcesJson = new StringBuilder();
             try {
@@ -112,7 +112,7 @@ public class ChatController {
                 }
                 emitter.completeWithError(e);
             }
-        });
+        }, "rag-chat-" + finalSessionId).start();
 
         return emitter;
     }
