@@ -1,5 +1,6 @@
 """gRPC KBManagementService implementation."""
 import json
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -8,6 +9,8 @@ from loguru import logger
 
 from config.model_config import AppConfig
 from kb_service.kb_service import KBServiceFactory
+
+_KB_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9一-鿿_-]{1,64}$')
 
 from generated import kb_management_pb2
 from generated import kb_management_pb2_grpc
@@ -48,6 +51,11 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             if not name:
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 context.set_details("KB name is required")
+                return kb_management_pb2.KBInfo()
+
+            if not _KB_NAME_PATTERN.match(name):
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details("KB name must be 1-64 chars: alphanumeric, Chinese, underscore, hyphen")
                 return kb_management_pb2.KBInfo()
 
             # Check for duplicate name

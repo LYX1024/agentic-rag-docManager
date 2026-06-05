@@ -70,6 +70,7 @@ def ingest_document(
             dimension=config.embedding.dimension,
         )
 
+    local_path = None
     try:
         # Step 1: Download from MinIO
         local_path = Path(config.storage.temp_dir) / kb_name / file_name
@@ -129,9 +130,6 @@ def ingest_document(
         doc_ids = kb_service.add_documents(texts, embeddings, metadatas)
         logger.info(f"[{kb_name}] Stored {len(doc_ids)} docs in FAISS")
 
-        # Cleanup
-        local_path.unlink(missing_ok=True)
-
         return IngestionResult(
             success=True,
             chunk_count=len(chunks),
@@ -146,3 +144,6 @@ def ingest_document(
             doc_ids=[],
             error_msg=str(e),
         )
+    finally:
+        if local_path is not None:
+            local_path.unlink(missing_ok=True)

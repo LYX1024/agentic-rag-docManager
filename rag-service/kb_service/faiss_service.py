@@ -1,6 +1,6 @@
 """FAISS vector store implementation (adapted from LangChain-Chatchat)."""
+import json
 import os
-import pickle
 from pathlib import Path
 from typing import Optional
 import numpy as np
@@ -20,7 +20,7 @@ class FAISSService(KBService):
         self.docstore: dict = {}  # doc_id -> {text, embedding, metadata}
         self._dimension: Optional[int] = None
         self._index_file = self.persist_dir / f"{kb_name}.faiss"
-        self._docstore_file = self.persist_dir / f"{kb_name}.pkl"
+        self._docstore_file = self.persist_dir / f"{kb_name}.json"
         self._load()
 
     @property
@@ -112,15 +112,15 @@ class FAISSService(KBService):
     def save(self):
         if self.index is not None:
             faiss.write_index(self.index, self._index_path)
-        with open(self._docstore_path, "wb") as f:
-            pickle.dump({"docstore": self.docstore, "dimension": self._dimension}, f)
+        with open(self._docstore_path, "w", encoding="utf-8") as f:
+            json.dump({"docstore": self.docstore, "dimension": self._dimension}, f, ensure_ascii=False)
 
     def _load(self):
         if self._index_file.exists() and self._docstore_file.exists():
             try:
                 self.index = faiss.read_index(self._index_path)
-                with open(self._docstore_path, "rb") as f:
-                    data = pickle.load(f)
+                with open(self._docstore_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
                     self.docstore = data.get("docstore", {})
                     self._dimension = data.get("dimension")
                 logger.info(f"FAISS[{self.kb_name}]: loaded {self.index.ntotal} docs")
