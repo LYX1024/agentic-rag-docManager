@@ -50,7 +50,7 @@ def serve():
         ChatServicer(config), server
     )
 
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port("0.0.0.0:50051")
     logger.info("RAG gRPC server starting on port 50051")
     server.start()
     logger.info("All services registered. Waiting for requests...")

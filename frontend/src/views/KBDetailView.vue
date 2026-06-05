@@ -178,8 +178,8 @@ async function fetchFileList() {
   try {
     const category = filterCategory.value || undefined
     const res = await documentApi.listDocs(kbId, category, currentPage.value - 1, pageSize.value)
-    fileList.value = res.data.content || []
-    total.value = res.data.totalElements || 0
+    fileList.value = res.data.records || []
+    total.value = res.data.total || 0
   } catch {
     ElMessage.error('获取文件列表失败')
   } finally {

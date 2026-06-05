@@ -29,7 +29,7 @@ export function createKB(data: CreateKBParams): Promise<ApiResponse<KnowledgeBas
   return request.post('/kb', data)
 }
 
-export function listKBs(page: number = 0, size: number = 20): Promise<ApiResponse<{ content: KnowledgeBase[], totalElements: number }>> {
+export function listKBs(page: number = 0, size: number = 20): Promise<ApiResponse<{ records: KnowledgeBase[], total: number }>> {
   return request.get('/kb', { params: { page, size } })
 }
 
