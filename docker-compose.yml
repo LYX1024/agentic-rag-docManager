@@ -86,45 +86,6 @@ services:
     networks:
       - mykb-net
 
-  # ==================== RocketMQ NameServer ====================
-  rocketmq-namesrv:
-    image: rocketmqinc/rocketmq:4.9.6
-    container_name: mykb-rocketmq-namesrv
-    restart: unless-stopped
-    environment:
-      JAVA_OPT_EXT: "-Xms64m -Xmx128m"
-      TZ: Asia/Shanghai
-    deploy:
-      resources:
-        limits:
-          memory: 192M
-    ports:
-      - "9876:9876"
-    volumes:
-      - rocketmq_namesrv_data:/home/rocketmq/store
-    networks:
-      - mykb-net
-
-  # ==================== RocketMQ Broker ====================
-  rocketmq-broker:
-    image: rocketmqinc/rocketmq:4.9.6
-    container_name: mykb-rocketmq-broker
-    restart: unless-stopped
-    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf
-    environment:
-      JAVA_OPT_EXT: "-Xms128m -Xmx256m"
-      TZ: Asia/Shanghai
-    ports:
-      - "10911:10911"
-      - "10909:10909"
-    volumes:
-      - rocketmq_broker_data:/home/rocketmq/store
-      - ./docker/rocketmq/broker.conf:/home/rocketmq/conf/broker.conf
-    depends_on:
-      - rocketmq-namesrv
-    networks:
-      - mykb-net
-
   # ==================== Python RAG Service ====================
   rag-service:
     build:
@@ -150,6 +111,9 @@ services:
       - MINIO_ENDPOINT=http://minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - TZ=Asia/Shanghai
     ports:
       - "${RAG_GRPC_PORT}:50051"
@@ -184,7 +148,6 @@ services:
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - GRPC_RAG_SERVICE_HOST=rag-service
       - GRPC_RAG_SERVICE_PORT=50051
-      - ROCKETMQ_NAMESRV=rocketmq-namesrv:9876
       - JWT_SECRET=${JWT_SECRET}
       - JAVA_OPTS=-Xms128m -Xmx256m
       - TZ=Asia/Shanghai
@@ -225,8 +188,6 @@ volumes:
   mysql_data:
   redis_data:
   minio_data:
-  rocketmq_namesrv_data:
-  rocketmq_broker_data:
   faiss_data:
 
 networks:

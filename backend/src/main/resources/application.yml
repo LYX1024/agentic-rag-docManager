@@ -49,12 +49,6 @@ grpc:
     host: ${GRPC_RAG_SERVICE_HOST:localhost}
     port: ${GRPC_RAG_SERVICE_PORT:50051}
 
-# RocketMQ Configuration
-rocketmq:
-  name-server: ${ROCKETMQ_NAMESRV:localhost:9876}
-  producer:
-    group: mykb-producer-group
-
 # SaToken Configuration
 sa-token:
   token-name: sa-token

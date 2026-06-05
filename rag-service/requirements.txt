@@ -31,6 +31,9 @@ PyYAML>=6.0
 # OpenAI client（embedding + LLM 云端 API）
 openai>=1.6.0
 
+# Redis pub/sub
+redis>=5.0.0
+
 # Utilities
 loguru>=0.7.0
 python-dotenv>=1.0.0

@@ -22,7 +22,6 @@
         <grpc.version>1.60.0</grpc.version>
         <sa-token.version>1.37.0</sa-token.version>
         <minio.version>8.5.7</minio.version>
-        <rocketmq.version>5.1.4</rocketmq.version>
     </properties>
 
     <dependencies>
@@ -104,13 +103,6 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>${minio.version}</version>
-        </dependency>
-
-        <!-- RocketMQ -->
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-spring-boot-starter</artifactId>
-            <version>2.2.3</version>
         </dependency>
 
         <!-- Utilities -->

@@ -75,7 +75,9 @@ class AppConfig(BaseModel):
     ocr: OCRConfig = OCRConfig()
     storage: StorageConfig = StorageConfig()
     llm: LLMConfig = LLMConfig()
-    java_backend_url: str = os.getenv("JAVA_BACKEND_URL", "http://localhost:8080")
+    redis_host: str = os.getenv("REDIS_HOST", "localhost")
+    redis_port: int = int(os.getenv("REDIS_PORT", "6379"))
+    redis_password: str = os.getenv("REDIS_PASSWORD", "")
 
 
 def load_config(config_path: Optional[Path] = None) -> AppConfig:

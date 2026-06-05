@@ -4,10 +4,9 @@ import uuid
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
-from urllib.request import Request, urlopen
-from urllib.error import URLError
 
 import grpc
+import redis
 from loguru import logger
 
 from config.model_config import AppConfig
@@ -163,25 +162,24 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
         self._notify_java(minio_key, result)
 
     def _notify_java(self, minio_key: str, result):
-        """Notify Java backend of ingestion result via HTTP callback."""
+        """Notify Java backend of ingestion result via Redis Pub/Sub."""
         try:
-            java_url = self.config.java_backend_url or "http://localhost:8080"
+            r = redis.Redis(
+                host=self.config.redis_host,
+                port=self.config.redis_port,
+                password=self.config.redis_password,
+                decode_responses=True,
+            )
             payload = json.dumps({
                 "minio_key": minio_key,
                 "status": "COMPLETED" if result.success else "FAILED",
                 "chunk_count": result.chunk_count,
                 "error_msg": result.error_msg or "",
-            }).encode("utf-8")
-            req = Request(
-                f"{java_url}/api/doc/ingestion-callback",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="PUT",
-            )
-            urlopen(req, timeout=5)
-            logger.debug(f"Notified Java: {minio_key} status={payload}")
+            })
+            r.publish("ingestion:status", payload)
+            logger.debug(f"Published to Redis: {minio_key} -> {payload}")
         except Exception as e:
-            logger.warning(f"Failed to notify Java: {e}")
+            logger.warning(f"Failed to publish to Redis: {e}")
 
     def ListDocuments(self, request, context):
         """List documents in a knowledge base."""
