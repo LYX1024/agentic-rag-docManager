@@ -33,7 +33,7 @@ public class DocumentService {
     private final FileChunkRepository chunkRepository;
     private final DocumentClient documentClient;
 
-    @Value("${minio.bucket-name}")
+    @Value("${minio.bucket}")
     private String bucketName;
 
     @Transactional
