@@ -30,7 +30,7 @@ public class UserService {
             admin.setPassword(BCrypt.hashpw("admin123"));
             admin.setEmail("admin@mykb.com");
             userRepository.save(admin);
-            log.info("Admin user created (admin / admin123)");
+            log.info("Default admin user created");
         } else {
             log.info("Admin user already exists");
         }

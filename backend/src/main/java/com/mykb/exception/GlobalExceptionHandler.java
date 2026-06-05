@@ -51,6 +51,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleGenericException(Exception e) {
         log.error("Unexpected error", e);
-        return ApiResponse.error(500, "Internal server error: " + e.getMessage());
+        return ApiResponse.error(500, "Internal server error");
     }
 }
