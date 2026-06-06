@@ -1,51 +1,42 @@
 <template>
-  <div class="login-page">
-    <div class="login-card">
-      <div class="card-header">
-        <el-icon :size="40" color="#409eff"><Reading /></el-icon>
-        <h2>知识库搜索平台</h2>
-        <p>登录您的账号</p>
+  <div class="min-h-screen bg-[#f5f0eb] flex items-center justify-center p-5">
+    <div class="w-full max-w-[420px] bg-white border-2 md:border-4 border-[#3d3d3d] shadow-[4px_4px_0px_0px_rgba(61,61,61,0.10)] md:shadow-[8px_8px_0px_0px_rgba(61,61,61,0.10)] p-8 md:p-10">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="font-light tracking-wide text-3xl mb-2">MyKB</h1>
+        <p class="font-mono text-sm text-gray-500">登录您的账号</p>
       </div>
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        class="login-form"
-        @keyup.enter="handleLogin"
-      >
-        <el-form-item prop="username">
-          <el-input
+
+      <!-- Form -->
+      <form class="flex flex-col gap-5" @submit.prevent="handleLogin" @keyup.enter="handleLogin">
+        <div>
+          <AppInput
             v-model="form.username"
             placeholder="请输入用户名"
-            :prefix-icon="User"
-            size="large"
           />
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input
+          <p v-if="errors.username" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.username }}</p>
+        </div>
+
+        <div>
+          <AppInput
             v-model="form.password"
             type="password"
             placeholder="请输入密码"
-            :prefix-icon="Lock"
-            size="large"
-            show-password
           />
-        </el-form-item>
-        <el-form-item>
-          <el-button
-            type="primary"
-            size="large"
-            class="login-btn"
-            :loading="loading"
-            @click="handleLogin"
-          >
-            登 录
-          </el-button>
-        </el-form-item>
-      </el-form>
-      <div class="card-footer">
+          <p v-if="errors.password" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.password }}</p>
+        </div>
+
+        <AppButton variant="primary" size="lg" :disabled="loading" class="w-full mt-2">
+          {{ loading ? '登录中...' : '登录' }}
+        </AppButton>
+      </form>
+
+      <!-- Footer -->
+      <div class="text-center mt-5 font-mono text-xs text-gray-500">
         <span>还没有账号？</span>
-        <router-link to="/register" class="link">立即注册</router-link>
+        <router-link to="/register" class="text-[#3d3d3d] underline hover:text-[#5a7a6b] transition-colors ml-1">
+          立即注册
+        </router-link>
       </div>
     </div>
   </div>
@@ -54,15 +45,14 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import { Reading, User, Lock } from '@element-plus/icons-vue'
+import { Toast } from '@/utils/toast'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const form = reactive({
@@ -70,94 +60,44 @@ const form = reactive({
   password: ''
 })
 
-const rules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 30, message: '用户名长度在 2 到 30 个字符之间', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 30, message: '密码长度在 6 到 30 个字符之间', trigger: 'blur' }
-  ]
+const errors = reactive({
+  username: '',
+  password: ''
+})
+
+function validate(): boolean {
+  errors.username = ''
+  errors.password = ''
+  let valid = true
+  if (!form.username.trim()) {
+    errors.username = '请输入用户名'
+    valid = false
+  } else if (form.username.length < 2 || form.username.length > 30) {
+    errors.username = '用户名长度在 2 到 30 个字符之间'
+    valid = false
+  }
+  if (!form.password) {
+    errors.password = '请输入密码'
+    valid = false
+  } else if (form.password.length < 6 || form.password.length > 30) {
+    errors.password = '密码长度在 6 到 30 个字符之间'
+    valid = false
+  }
+  return valid
 }
 
 async function handleLogin() {
-  if (!formRef.value) return
-  try {
-    await formRef.value.validate()
-  } catch {
-    return
-  }
+  if (!validate()) return
 
   loading.value = true
   try {
     await authStore.login(form.username, form.password)
-    ElMessage.success('登录成功')
+    Toast.success('登录成功')
     router.push('/dashboard')
   } catch (error: any) {
-    ElMessage.error(error.message || '登录失败')
+    Toast.error(error.message || '登录失败')
   } finally {
     loading.value = false
   }
 }
 </script>
-
-<style scoped lang="scss">
-.login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.login-card {
-  width: 420px;
-  padding: 48px 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-
-  .card-header {
-    text-align: center;
-    margin-bottom: 36px;
-
-    h2 {
-      font-size: 22px;
-      font-weight: 600;
-      color: #303133;
-      margin: 12px 0 6px;
-    }
-
-    p {
-      font-size: 14px;
-      color: #909399;
-      margin: 0;
-    }
-  }
-
-  .login-form {
-    .login-btn {
-      width: 100%;
-    }
-  }
-
-  .card-footer {
-    text-align: center;
-    font-size: 13px;
-    color: #909399;
-    margin-top: 16px;
-
-    .link {
-      color: #409eff;
-      text-decoration: none;
-      margin-left: 4px;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-}
-</style>

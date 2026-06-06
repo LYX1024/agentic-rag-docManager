@@ -9,6 +9,14 @@ export interface ChatSession {
   updatedAt?: string
 }
 
+export interface ChatSource {
+  file_name: string
+  chunk_index: number
+  chunk_text?: string
+  text?: string
+  score: number
+}
+
 export interface ChatMessage {
   id?: number
   role: 'user' | 'assistant'

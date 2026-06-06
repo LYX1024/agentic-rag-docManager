@@ -1,27 +1,55 @@
 <template>
-  <div :class="['chat-message', message.role]">
-    <div class="message-avatar">
-      <el-avatar v-if="message.role === 'user'" :size="36" icon="UserFilled" />
-      <el-avatar v-else :size="36" icon="Cpu" style="background-color: #409eff" />
-    </div>
-    <div class="message-body">
-      <div class="message-content">
-        <div v-if="message.role === 'assistant'" class="message-text markdown-body" v-html="renderedContent" />
-        <div v-else class="message-text">{{ message.content }}</div>
+  <div :class="['flex gap-3 px-2', message.role === 'user' ? 'flex-row-reverse' : '']">
+    <!-- Avatar -->
+    <div class="flex-shrink-0 pt-1">
+      <div
+        :class="[
+          'w-9 h-9 flex items-center justify-center font-mono text-sm border-2 border-[#3d3d3d]',
+          message.role === 'user' ? 'bg-[#3d3d3d] text-[#f5f0eb]' : 'bg-white/60 border border-[#d4cdc5]/30 text-[#3d3d3d]'
+        ]"
+      >
+        {{ message.role === 'user' ? 'U' : 'AI' }}
       </div>
+    </div>
+
+    <!-- Body -->
+    <div :class="['flex flex-col gap-2', message.role === 'user' ? 'items-end' : 'items-start', 'max-w-[75%]']">
+      <!-- Content -->
+      <div
+        :class="[
+          'p-4 rounded-sm',
+          message.role === 'user'
+            ? 'bg-[#3d3d3d] text-[#f5f0eb]'
+            : 'bg-white/60 border border-[#d4cdc5]/30 text-[#3d3d3d]'
+        ]"
+      >
+        <div
+          v-if="message.role === 'assistant'"
+          class="font-mono text-sm leading-relaxed markdown-body"
+          v-html="renderedContent"
+        />
+        <div v-else class="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
+          {{ message.content }}
+        </div>
+      </div>
+
+      <!-- Sources -->
       <div
         v-if="message.role === 'assistant' && groupedSources.length > 0"
-        class="message-sources"
+        class="w-full"
       >
-        <el-collapse>
-          <el-collapse-item :title="'来源 (' + groupedSources.length + ' 个文档)'" name="1">
+        <details class="font-mono text-xs">
+          <summary class="cursor-pointer text-gray-500 py-1 hover:text-[#3d3d3d] transition-colors">
+            来源 ({{ groupedSources.length }} 个文档)
+          </summary>
+          <div class="mt-2 flex flex-col gap-2">
             <SourceCitation
               v-for="(group, idx) in groupedSources"
               :key="idx"
               :group="group"
             />
-          </el-collapse-item>
-        </el-collapse>
+          </div>
+        </details>
       </div>
     </div>
   </div>
@@ -58,103 +86,61 @@ const groupedSources = computed(() => {
 })
 </script>
 
-<style scoped lang="scss">
-.chat-message {
-  display: flex;
-  gap: 12px;
-  padding: 0 8px;
-
-  .message-avatar {
-    flex-shrink: 0;
-    padding-top: 4px;
-  }
-
-  .message-body {
-    max-width: 75%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  &.user {
-    flex-direction: row-reverse;
-
-    .message-content {
-      background-color: #409eff;
-      color: #fff;
-      border-radius: 12px 12px 4px 12px;
-
-      .message-text {
-        font-size: 14px;
-        line-height: 1.7;
-        white-space: pre-wrap;
-        word-break: break-word;
-      }
-    }
-  }
-
-  &.assistant {
-    .message-content {
-      background-color: #f5f7fa;
-      color: #303133;
-      border-radius: 12px 12px 12px 4px;
-      border: 1px solid #ebeef5;
-
-      .markdown-body {
-        font-size: 14px;
-        line-height: 1.8;
-
-        :deep(h1), :deep(h2), :deep(h3), :deep(h4) { margin: 16px 0 8px; font-weight: 600; }
-        :deep(h2) { font-size: 17px; border-bottom: 1px solid #e8e8e8; padding-bottom: 4px; }
-        :deep(h3) { font-size: 15px; }
-        :deep(p) { margin: 8px 0; }
-        :deep(ul), :deep(ol) { padding-left: 20px; margin: 8px 0; }
-        :deep(li) { margin: 4px 0; }
-        :deep(strong) { font-weight: 600; color: #303133; }
-        :deep(code) { font-family: monospace; background: #e8e8e8; padding: 2px 6px; border-radius: 3px; font-size: 13px; }
-        :deep(pre) { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 6px; overflow-x: auto; margin: 12px 0; }
-        :deep(pre code) { background: transparent; padding: 0; color: inherit; }
-        :deep(blockquote) { border-left: 4px solid #409eff; padding-left: 16px; color: #666; margin: 12px 0; }
-        :deep(table) { border-collapse: collapse; width: 100%; margin: 12px 0; }
-        :deep(th), :deep(td) { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-        :deep(th) { background: #f5f5f5; }
-        :deep(a) { color: #409eff; }
-      }
-    }
-  }
-
-  .message-content {
-    padding: 12px 16px;
-    max-width: 100%;
-  }
-
-  .message-sources {
-    :deep(.el-collapse) {
-      border-top: none;
-      border-bottom: none;
-
-      .el-collapse-item__header {
-        font-size: 12px;
-        color: #909399;
-        height: 32px;
-        line-height: 32px;
-        background: transparent;
-        border-bottom: none;
-        padding-left: 4px;
-      }
-
-      .el-collapse-item__wrap {
-        border-bottom: none;
-        background: transparent;
-      }
-
-      .el-collapse-item__content {
-        padding: 4px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-    }
-  }
+<style scoped>
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4) {
+  margin: 16px 0 8px;
+  font-weight: 300;
+  letter-spacing: 0.05em;
 }
+.markdown-body :deep(h2) {
+  font-size: 16px;
+  border-bottom: 2px solid #3d3d3d;
+  padding-bottom: 4px;
+}
+.markdown-body :deep(h3) { font-size: 14px; }
+.markdown-body :deep(p) { margin: 8px 0; }
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) { padding-left: 20px; margin: 8px 0; }
+.markdown-body :deep(li) { margin: 4px 0; }
+.markdown-body :deep(strong) { color: #3d3d3d; }
+.markdown-body :deep(code) {
+  font-family: 'Courier New', Courier, monospace;
+  background: #e8e8e8;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.markdown-body :deep(pre) {
+  background: #3d3d3d;
+  color: #f8f8f2;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.markdown-body :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid #3d3d3d;
+  padding-left: 16px;
+  color: #666;
+  margin: 12px 0;
+}
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #3d3d3d;
+  padding: 8px 12px;
+  text-align: left;
+}
+.markdown-body :deep(th) { background: #f5f5f5; }
+.markdown-body :deep(a) { color: #5a7a6b; }
 </style>

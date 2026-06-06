@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
-import { ElMessage } from 'element-plus'
+import { Toast } from '@/utils/toast'
 import router from '@/router'
 
 export interface ApiResponse<T = any> {
@@ -32,7 +32,7 @@ service.interceptors.request.use(
 
 // Response interceptor
 service.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
+  (response: AxiosResponse<ApiResponse>): any => {
     const res = response.data
 
     // If response is a blob or other non-JSON, return directly
@@ -43,7 +43,7 @@ service.interceptors.response.use(
     if (res.code === 200 || res.code === 0) {
       return res
     } else {
-      ElMessage.error(res.msg || '请求失败')
+      Toast.error(res.msg || '请求失败')
 
       if (res.code === 401) {
         localStorage.removeItem('sa-token')
@@ -59,14 +59,14 @@ service.interceptors.response.use(
       if (status === 401) {
         localStorage.removeItem('sa-token')
         router.push('/login')
-        ElMessage.error('登录已过期，请重新登录')
+        Toast.error('登录已过期，请重新登录')
       } else {
-        ElMessage.error(error.response.data?.msg || `请求失败 (${status})`)
+        Toast.error(error.response.data?.msg || `请求失败 (${status})`)
       }
     } else if (error.message.includes('timeout')) {
-      ElMessage.error('请求超时，请稍后重试')
+      Toast.error('请求超时，请稍后重试')
     } else {
-      ElMessage.error('网络错误，请检查网络连接')
+      Toast.error('网络错误，请检查网络连接')
     }
     return Promise.reject(error)
   }

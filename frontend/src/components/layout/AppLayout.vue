@@ -1,50 +1,63 @@
 <template>
-  <el-container class="app-layout">
-    <el-aside width="220px" class="app-aside">
-      <AppSidebar />
-    </el-aside>
-    <el-container>
-      <el-header class="app-header">
-        <AppHeader />
-      </el-header>
-      <el-main class="app-main">
-        <slot />
-      </el-main>
-    </el-container>
-  </el-container>
+  <div class="flex flex-col h-screen w-screen overflow-hidden bg-[#f5f0eb]">
+    <!-- Top Navbar -->
+    <header class="h-14 bg-[#f5f0eb] border-b border-[#d4cdc5] flex items-center justify-center px-6 flex-shrink-0 relative">
+      <nav class="flex items-center gap-8">
+        <router-link
+          v-for="item in navItems"
+          :key="item.path"
+          :to="item.path"
+          class="font-light text-sm tracking-wide transition-colors duration-700"
+          :class="isActive(item.path) ? 'text-[#5a7a6b]' : 'text-[#3d3d3d]/60 hover:text-[#3d3d3d]'"
+        >
+          {{ item.label }}
+        </router-link>
+      </nav>
+      <div class="absolute right-6 flex items-center gap-4">
+        <span class="font-light text-sm text-[#3d3d3d]/60">{{ username }}</span>
+        <button
+          class="font-light text-sm text-[#3d3d3d]/60 hover:text-[#607683] transition-colors duration-700 cursor-pointer"
+          @click="handleLogout"
+        >
+          退出
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 overflow-y-auto">
+      <slot />
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
-import AppSidebar from './AppSidebar.vue'
-import AppHeader from './AppHeader.vue'
-</script>
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-<style scoped lang="scss">
-.app-layout {
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
 
-  .app-aside {
-    background-color: #001529;
-    overflow: hidden;
+const username = computed(() => authStore.user?.username || '')
+
+const navItems = [
+  { path: '/dashboard', label: 'Dashboard' },
+  { path: '/chat', label: 'Chat' }
+]
+
+function isActive(path: string): boolean {
+  if (path === '/dashboard' && (route.path.startsWith('/dashboard') || route.path.startsWith('/kb') || route.path.startsWith('/search'))) {
+    return true
   }
-
-  .app-header {
-    background: #fff;
-    border-bottom: 1px solid #e8e8e8;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    height: 56px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  if (path === '/chat' && route.path.startsWith('/chat')) {
+    return true
   }
-
-  .app-main {
-    background-color: #f5f7fa;
-    padding: 24px;
-    overflow-y: auto;
-    height: calc(100vh - 56px);
-  }
+  return false
 }
-</style>
+
+function handleLogout() {
+  authStore.logout()
+}
+</script>

@@ -7,6 +7,7 @@ export interface KnowledgeBase {
   vsType: string
   embedModel: string
   userId: number
+  fileCount?: number
   createdAt?: string
   updatedAt?: string
 }

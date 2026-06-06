@@ -1,24 +1,29 @@
 <template>
   <AppLayout>
-    <div class="dashboard">
-      <div class="dashboard-header">
-        <h1>我的知识库</h1>
-        <el-button type="primary" :icon="Plus" @click="showCreateDialog = true">
+    <div class="px-6 md:px-12 py-8 max-w-6xl mx-auto">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="font-light tracking-wide text-2xl">我的知识库</h1>
+        <AppButton variant="primary" @click="showCreateDialog = true">
           创建知识库
-        </el-button>
+        </AppButton>
       </div>
 
-      <div v-if="loading" class="loading-container">
-        <el-skeleton :rows="3" animated />
+      <!-- Loading -->
+      <div v-if="loading" class="p-10 font-mono text-sm text-gray-500">
+        加载中...
       </div>
 
-      <div v-else-if="kbList.length === 0" class="empty-container">
-        <el-empty description="还没有知识库，点击上方按钮创建">
-          <el-button type="primary" @click="showCreateDialog = true">创建知识库</el-button>
-        </el-empty>
+      <!-- Empty -->
+      <div v-else-if="kbList.length === 0" class="flex flex-col items-center justify-center py-20 gap-4">
+        <p class="font-light tracking-wide text-lg text-gray-500">还没有知识库</p>
+        <AppButton variant="secondary" @click="showCreateDialog = true">
+          创建知识库
+        </AppButton>
       </div>
 
-      <div v-else class="kb-grid">
+      <!-- Grid -->
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <KBCard
           v-for="kb in kbList"
           :key="kb.id"
@@ -28,8 +33,10 @@
         />
       </div>
 
+      <!-- Create Dialog -->
       <CreateKBDialog
-        v-model:visible="showCreateDialog"
+        :visible="showCreateDialog"
+        @update:visible="showCreateDialog = $event"
         @confirm="handleCreate"
       />
     </div>
@@ -39,11 +46,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
 import { useKBStore } from '@/stores/knowledgeBase'
 import type { KnowledgeBase, CreateKBParams } from '@/api/knowledgeBase'
+import { Toast } from '@/utils/toast'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import KBCard from '@/components/kb/KBCard.vue'
 import CreateKBDialog from '@/components/kb/CreateKBDialog.vue'
 
@@ -52,7 +59,6 @@ const kbStore = useKBStore()
 
 const loading = ref(true)
 const showCreateDialog = ref(false)
-
 const kbList = ref<KnowledgeBase[]>([])
 
 onMounted(async () => {
@@ -65,7 +71,7 @@ async function fetchList() {
     await kbStore.fetchKBList()
     kbList.value = kbStore.kbList
   } catch {
-    ElMessage.error('获取知识库列表失败')
+    Toast.error('获取知识库列表失败')
   } finally {
     loading.value = false
   }
@@ -78,66 +84,22 @@ function goToKB(kb: KnowledgeBase) {
 
 async function handleCreate(data: CreateKBParams) {
   try {
-    const kb = await kbStore.createKB(data)
-    ElMessage.success('知识库创建成功')
+    await kbStore.createKB(data)
+    Toast.success('知识库创建成功')
     showCreateDialog.value = false
     await fetchList()
   } catch {
-    ElMessage.error('创建知识库失败')
+    Toast.error('创建知识库失败')
   }
 }
 
 async function handleDeleteKB(kb: KnowledgeBase) {
   try {
     await kbStore.deleteKB(kb.id)
-    ElMessage.success('知识库已删除')
+    Toast.success('知识库已删除')
     await fetchList()
   } catch {
-    ElMessage.error('删除知识库失败')
+    Toast.error('删除知识库失败')
   }
 }
 </script>
-
-<style scoped lang="scss">
-.dashboard {
-  .dashboard-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24px;
-
-    h1 {
-      font-size: 22px;
-      font-weight: 600;
-      color: #303133;
-      margin: 0;
-    }
-  }
-
-  .loading-container {
-    padding: 40px;
-  }
-
-  .empty-container {
-    margin-top: 60px;
-  }
-
-  .kb-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-
-    @media (max-width: 1400px) {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    @media (max-width: 1100px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-    }
-  }
-}
-</style>

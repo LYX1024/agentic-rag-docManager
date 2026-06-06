@@ -1,17 +1,21 @@
 <template>
-  <div class="source-group">
-    <div class="group-header">
-      <el-icon><Document /></el-icon>
-      <span class="group-filename">{{ group.file_name }}</span>
-      <el-tag size="small" :type="scoreType">
-        相似度 {{ percent }}%
-      </el-tag>
-      <span class="chunk-list">命中 {{ group.chunks.length }} 个分块：{{ chunkIndices }}</span>
+  <div class="bg-white border border-[#3d3d3d] p-3">
+    <div class="flex items-center gap-2 flex-wrap mb-2">
+      <span class="font-mono text-xs text-[#3d3d3d]">{{ group.file_name }}</span>
+      <span
+        class="font-mono text-[10px] px-1.5 py-0.5 border border-[#3d3d3d]"
+        :class="scoreClass"
+      >
+        {{ percent }}%
+      </span>
+      <span class="font-mono text-[10px] text-gray-400">
+        命中 {{ group.chunks.length }} 个分块：{{ chunkIndices }}
+      </span>
     </div>
-    <div class="group-chunks">
-      <div v-for="chunk in group.chunks" :key="chunk.chunk_index" class="chunk-item">
-        <span class="chunk-label">[块{{ chunk.chunk_index }}]</span>
-        <span class="chunk-text">{{ truncate(chunk.chunk_text || chunk.text || '') }}</span>
+    <div class="border-t border-dashed border-[#3d3d3d] pt-2 flex flex-col gap-1">
+      <div v-for="chunk in group.chunks" :key="chunk.chunk_index" class="font-mono text-xs text-gray-600 leading-relaxed">
+        <span class="text-[#5a7a6b]">[块{{ chunk.chunk_index }}]</span>
+        <span>{{ truncate(chunk.chunk_text || chunk.text || '') }}</span>
       </div>
     </div>
   </div>
@@ -19,7 +23,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Document } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   group: {
@@ -29,11 +32,11 @@ const props = defineProps<{
   }
 }>()
 
-const scoreType = computed(() => {
+const scoreClass = computed(() => {
   const s = props.group.bestScore
-  if (s > 0.7) return 'success'
-  if (s > 0.4) return 'warning'
-  return 'info'
+  if (s > 0.7) return 'bg-[#5a7a6b] text-white'
+  if (s > 0.4) return 'bg-[#c9a88c] text-[#3d3d3d]'
+  return 'bg-[#f5f0eb] text-[#3d3d3d]'
 })
 
 const percent = computed(() => (props.group.bestScore * 100).toFixed(0))
@@ -46,50 +49,3 @@ function truncate(text: string): string {
   return text.length > 120 ? text.slice(0, 120) + '...' : text
 }
 </script>
-
-<style scoped lang="scss">
-.source-group {
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 10px 12px;
-
-  .group-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 6px;
-
-    .group-filename {
-      font-size: 13px;
-      font-weight: 500;
-      color: #303133;
-    }
-
-    .chunk-list {
-      font-size: 11px;
-      color: #c0c4cc;
-    }
-  }
-
-  .group-chunks {
-    border-top: 1px dashed #ebeef5;
-    padding-top: 6px;
-
-    .chunk-item {
-      font-size: 12px;
-      color: #606266;
-      line-height: 1.6;
-      padding: 2px 0;
-
-      .chunk-label {
-        color: #409eff;
-        font-weight: 500;
-        margin-right: 4px;
-        white-space: nowrap;
-      }
-    }
-  }
-}
-</style>
