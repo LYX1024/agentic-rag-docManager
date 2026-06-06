@@ -36,7 +36,7 @@ const scoreClass = computed(() => {
   const s = props.group.bestScore
   if (s > 0.7) return 'bg-[#5a7a6b] text-white'
   if (s > 0.4) return 'bg-[#c9a88c] text-[#3d3d3d]'
-  return 'bg-[#f5f0eb] text-[#3d3d3d]'
+  return 'bg-[#F9F6F3] text-[#3d3d3d]'
 })
 
 const percent = computed(() => (props.group.bestScore * 100).toFixed(0))

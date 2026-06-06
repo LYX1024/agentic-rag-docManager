@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-[#f5f0eb] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-5 mb-3 transition-colors duration-700 ease-in-out">
+  <div class="bg-[#F9F6F3] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-5 mb-3 transition-colors duration-700 ease-in-out">
     <div class="mb-3">
       <p class="font-light text-sm leading-relaxed text-[#3d3d3d]" v-html="highlightedText" />
     </div>
@@ -37,7 +37,7 @@ const scoreClass = computed(() => {
   const s = props.result.score
   if (s > 0.7) return 'bg-[#5a7a6b] text-white'
   if (s > 0.4) return 'bg-[#c9a88c] text-[#3d3d3d]'
-  return 'bg-[#f5f0eb] text-[#3d3d3d]'
+  return 'bg-[#F9F6F3] text-[#3d3d3d]'
 })
 
 function escapeHtml(str: string): string {

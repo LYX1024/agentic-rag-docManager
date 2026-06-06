@@ -1,5 +1,22 @@
 <template>
   <AppLayout>
+    <template #sidebar>
+      <NavLinks current="/docbase" @docbase="goDocBase" />
+      <div class="border-b border-[#d4cdc5]/40" />
+      <div class="flex-1 overflow-y-auto p-2">
+        <div
+          v-for="kb in kbList"
+          :key="kb.id"
+          :class="[
+            'px-3 py-2 cursor-pointer font-light text-sm transition-colors duration-700 ease-in-out mb-0.5 group',
+            kb.id === kbId ? 'bg-[#3d3d3d] text-[#f5f0eb]' : 'text-[#3d3d3d] hover:bg-[#d4cdc5]/20'
+          ]"
+          @click="switchKB(kb.id)"
+        >
+          <span class="truncate block">{{ kb.name }}</span>
+        </div>
+      </div>
+    </template>
     <div class="px-6 md:px-12 py-8 md:py-12 max-w-7xl mx-auto" @dragenter.prevent @dragover.prevent @drop.prevent>
       <!-- Header -->
       <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -180,6 +197,8 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Document, DocumentStatus } from '@/api/document'
 import * as documentApi from '@/api/document'
 import * as kbApi from '@/api/knowledgeBase'
+import { useKBStore } from '@/stores/knowledgeBase'
+import NavLinks from '@/components/layout/NavLinks.vue'
 import { Toast } from '@/utils/toast'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -190,8 +209,10 @@ import PreviewDialog from '@/components/kb/PreviewDialog.vue'
 const route = useRoute()
 const router = useRouter()
 
+const kbStore = useKBStore()
 const kbId = Number(route.params.id)
 const kbName = ref('')
+const kbList = ref<import('@/api/knowledgeBase').KnowledgeBase[]>([])
 
 const fileList = ref<Document[]>([])
 const total = ref(0)
@@ -218,9 +239,18 @@ const categoryOptions = computed(() => {
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value) || 1)
 
 onMounted(async () => {
+  await fetchKBList()
   await fetchKBInfo()
   await fetchFileList()
   await fetchCategories()
+})
+
+watch(() => route.params.id, async (newId) => {
+  if (newId) {
+    await fetchKBInfo()
+    await fetchFileList()
+    await fetchCategories()
+  }
 })
 
 async function fetchKBInfo() {
@@ -330,6 +360,21 @@ function formatFileSize(bytes: number): string {
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('zh-CN')
+}
+
+async function goDocBase() {
+  await fetchKBList()
+  if (kbList.value.length > 0) router.push(`/kb/${kbList.value[0].id}`)
+  else Toast.warning('请先创建知识库')
+}
+
+function switchKB(id: number) {
+  router.push(`/kb/${id}`)
+}
+
+async function fetchKBList() {
+  await kbStore.fetchKBList()
+  kbList.value = kbStore.kbList
 }
 
 function goBack() {

@@ -1,10 +1,10 @@
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 const colorMap: Record<ToastType, { bg: string; text: string; border: string }> = {
-  success: { bg: '#5a7a6b', text: '#f5f0eb', border: '#d4cdc5' },
-  error: { bg: '#607683', text: '#f5f0eb', border: '#d4cdc5' },
+  success: { bg: '#5a7a6b', text: '#F9F6F3', border: '#d4cdc5' },
+  error: { bg: '#607683', text: '#F9F6F3', border: '#d4cdc5' },
   warning: { bg: '#c9a88c', text: '#3d3d3d', border: '#d4cdc5' },
-  info: { bg: '#f5f0eb', text: '#3d3d3d', border: '#d4cdc5' }
+  info: { bg: '#F9F6F3', text: '#3d3d3d', border: '#d4cdc5' }
 }
 
 export function showToast(message: string, type: ToastType = 'info') {

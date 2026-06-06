@@ -62,7 +62,7 @@ function close() {
 }
 
 const dialogClasses = computed(() => [
-  'relative bg-[#f5f0eb] border border-[#d4cdc5]/40',
+  'relative bg-[#F9F6F3] border border-[#d4cdc5]/40',
   'shadow-sm',
   'p-4 md:p-6 rounded-sm w-full mx-4'
 ])

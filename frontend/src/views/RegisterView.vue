@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-[#f5f0eb] flex items-center justify-center py-20 px-6">
-    <div class="w-full max-w-[420px] bg-[#f5f0eb] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-8 md:p-10">
+  <div class="min-h-screen bg-[#F9F6F3] flex items-center justify-center py-20 px-6">
+    <div class="w-full max-w-[420px] bg-[#F9F6F3] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-8 md:p-10">
       <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="font-light tracking-wide text-3xl mb-2">MyKB</h1>

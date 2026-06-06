@@ -2,13 +2,14 @@
   <div class="flex h-screen w-screen overflow-hidden">
     <!-- Session sidebar -->
     <aside class="w-[260px] bg-[#f5f0eb] border-r border-[#d4cdc5]/40 flex flex-col flex-shrink-0">
-      <div class="p-4 border-b border-[#d4cdc5]/40 flex flex-col gap-2">
-        <AppButton variant="secondary" size="sm" @click="$router.push('/dashboard')">
-          ← 返回主页
-        </AppButton>
-        <AppButton variant="primary" size="sm" @click="showNewSessionDialog">
-          新对话
-        </AppButton>
+      <div class="flex flex-col">
+        <NavLinks current="/chat" @docbase="goDocBase" />
+        <div class="border-b border-[#d4cdc5]/40" />
+        <div class="p-4">
+          <AppButton variant="primary" size="sm" class="w-full" @click="showNewSessionDialog">
+            新对话
+          </AppButton>
+        </div>
       </div>
       <div class="flex-1 overflow-y-auto p-2">
         <div
@@ -17,7 +18,7 @@
           :class="[
             'flex items-center gap-2 px-3 py-2 cursor-pointer font-light text-sm transition-colors duration-700 ease-in-out mb-0.5 group',
             session.id === chatStore.currentSessionId
-              ? 'bg-[#3d3d3d] text-[#f5f0eb]'
+              ? 'bg-[#3d3d3d] text-[#F9F6F3]'
               : 'text-[#3d3d3d] hover:bg-gray-100'
           ]"
           @click="handleSelectSession(session.id)"
@@ -40,7 +41,7 @@
     </aside>
 
     <!-- Main chat area -->
-    <div class="flex-1 flex flex-col bg-[#f5f0eb]">
+    <div class="flex-1 flex flex-col bg-[#F9F6F3]">
       <!-- Empty state -->
       <div v-if="!chatStore.currentSessionId" class="flex-1 flex flex-col items-center justify-center gap-6">
         <h2 class="font-light tracking-wide text-2xl">智能知识库问答</h2>
@@ -64,7 +65,7 @@
               :key="index"
               :message="msg"
             />
-            <div v-if="isStreaming" class="flex items-center gap-2 px-4 py-3 bg-[#f5f0eb] border border-[#d4cdc5]/40 self-start">
+            <div v-if="isStreaming" class="flex items-center gap-2 px-4 py-3 bg-[#F9F6F3] border border-[#d4cdc5]/40 self-start">
               <span class="flex gap-1">
                 <span class="w-1.5 h-1.5 bg-[#3d3d3d] rounded-none animate-bounce" style="animation-delay: 0ms" />
                 <span class="w-1.5 h-1.5 bg-[#3d3d3d] rounded-none animate-bounce" style="animation-delay: 200ms" />
@@ -76,7 +77,7 @@
         </div>
 
         <!-- Input area -->
-        <div class="p-4 bg-[#f5f0eb] border-t border-[#d4cdc5]/40">
+        <div class="p-4 bg-[#F9F6F3] border-t border-[#d4cdc5]/40">
           <div class="max-w-[800px] mx-auto">
             <textarea
               v-model="inputText"
@@ -149,6 +150,7 @@ import { Toast } from '@/utils/toast'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import NavLinks from '@/components/layout/NavLinks.vue'
 import ChatMessageComponent from '@/components/chat/ChatMessage.vue'
 
 const route = useRoute()
@@ -221,6 +223,16 @@ function closeSSE() {
     activeEventSource = null
   }
   isStreaming.value = false
+}
+
+async function goDocBase() {
+  await kbStore.fetchKBList()
+  const kbs = kbStore.kbList
+  if (kbs.length > 0) {
+    router.push(`/kb/${kbs[0].id}`)
+  } else {
+    Toast.warning('请先创建知识库')
+  }
 }
 
 function showNewSessionDialog() {

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group p-6 md:p-8 bg-[#f5f0eb] border border-[#d4cdc5]/40 rounded-sm shadow-sm hover:shadow-md hover:border-[#d4cdc5]/60 transition-colors duration-700 ease-in-out cursor-pointer relative"
+    class="group p-6 md:p-8 bg-[#F9F6F3] border border-[#d4cdc5]/40 rounded-sm shadow-sm hover:shadow-md hover:border-[#d4cdc5]/60 transition-colors duration-700 ease-in-out cursor-pointer relative"
     @click="handleClick"
   >
     <!-- Delete button -->

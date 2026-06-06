@@ -16,7 +16,7 @@
         @keyup.enter="handleSearch"
       />
       <button
-        class="bg-[#5a7a6b] text-[#f5f0eb] font-light tracking-wide text-sm px-6 py-3 hover:opacity-90 transition-colors duration-700 ease-in-out cursor-pointer"
+        class="bg-[#5a7a6b] text-[#F9F6F3] font-light tracking-wide text-sm px-6 py-3 hover:opacity-90 transition-colors duration-700 ease-in-out cursor-pointer"
         :disabled="loading"
         @click="handleSearch"
       >
