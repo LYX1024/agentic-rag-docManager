@@ -80,9 +80,7 @@ public class ChatController {
 
     @DeleteMapping("/session/{id}")
     public ApiResponse<Void> deleteSession(@PathVariable Long id) {
-        ChatSession session = chatService.getSession(id);
-        chatService.evictHistoryCache(id);
-        chatService.evictSessionCache(session.getUserId());
+        chatService.deleteSession(id);
         return ApiResponse.success();
     }
 

@@ -132,7 +132,7 @@ public class DocumentService {
                 long total = node.get("total").asLong();
                 Page<KnowledgeFile> page = new Page<>(pageNum, pageSize, total);
                 page.setRecords(records);
-                log.debug("Cache hit: {}", cacheKey);
+                log.info("Cache hit: {}", cacheKey);
                 return page;
             }
         } catch (Exception e) {
@@ -169,7 +169,7 @@ public class DocumentService {
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                log.debug("Cache hit: {}", cacheKey);
+                log.info("Cache hit: {}", cacheKey);
                 return objectMapper.readValue(cached,
                         objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
             }
@@ -290,7 +290,7 @@ public class DocumentService {
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                log.debug("Cache hit: {}", cacheKey);
+                log.info("Cache hit: {}", cacheKey);
                 return objectMapper.readValue(cached, KnowledgeFile.class);
             }
         } catch (Exception e) {
