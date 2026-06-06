@@ -1,9 +1,0 @@
-# 开发环境配置模板
-# 复制为 application-dev.yml（已在 .gitignore 中排除）
-# 所有敏感值从 .env 获取，仅在此写入非敏感的本地开发覆盖项
-
-spring:
-  data:
-    redis:
-      # 从 .env 的 REDIS_PASSWORD 读取，不要硬编码密码
-      password: ${REDIS_PASSWORD:redis123456}
