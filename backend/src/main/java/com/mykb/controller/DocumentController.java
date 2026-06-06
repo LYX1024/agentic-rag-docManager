@@ -13,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RestController
@@ -61,7 +63,10 @@ public class DocumentController {
     public void preview(@PathVariable Long id, HttpServletResponse response) {
         KnowledgeFile kf = documentService.getFile(id);
         response.setContentType(getContentType(kf.getFileExt()));
-        response.setHeader("Content-Disposition", "inline; filename=\"" + kf.getFileName() + "\"");
+        String encodedName = URLEncoder.encode(kf.getFileName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        response.setHeader("Content-Disposition",
+                "inline; filename*=UTF-8''" + encodedName);
         try (InputStream in = documentService.getFileContent(id);
              OutputStream out = response.getOutputStream()) {
             in.transferTo(out);

@@ -19,18 +19,30 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DocumentService {
 
     private final MinioClient minioClient;
     private final KnowledgeFileMapper fileMapper;
     private final FileChunkMapper chunkMapper;
     private final DocumentClient documentClient;
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
+    public DocumentService(MinioClient minioClient, KnowledgeFileMapper fileMapper,
+                           FileChunkMapper chunkMapper, DocumentClient documentClient,
+                           org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+        this.minioClient = minioClient;
+        this.fileMapper = fileMapper;
+        this.chunkMapper = chunkMapper;
+        this.documentClient = documentClient;
+        this.redisTemplate = redisTemplate;
+    }
 
     @Value("${minio.bucket}")
     private String bucketName;
@@ -132,6 +144,7 @@ public class DocumentService {
         }
 
         fileMapper.deleteById(kf.getId());
+        redisTemplate.delete("preview:" + fileId);
         log.info("Document deleted: fileId={}", fileId);
     }
 
@@ -148,12 +161,38 @@ public class DocumentService {
         if (kf == null) {
             throw new BusinessException(404, "Document not found");
         }
+
+        // Check Redis cache first
+        String cacheKey = "preview:" + fileId;
         try {
-            return minioClient.getObject(
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("Preview cache hit: fileId={}", fileId);
+                return new ByteArrayInputStream(java.util.Base64.getDecoder().decode(cached));
+            }
+        } catch (Exception e) {
+            log.warn("Redis cache read failed, falling back to MinIO: {}", e.getMessage());
+        }
+
+        try {
+            byte[] bytes = minioClient.getObject(
                     io.minio.GetObjectArgs.builder()
                             .bucket(bucketName)
                             .object(kf.getFilePathInMinio())
-                            .build());
+                            .build()).readAllBytes();
+
+            // Cache in Redis for 30 min (files under 5MB)
+            if (bytes.length <= 5 * 1024 * 1024) {
+                try {
+                    redisTemplate.opsForValue().set(cacheKey,
+                            java.util.Base64.getEncoder().encodeToString(bytes),
+                            Duration.ofMinutes(30));
+                } catch (Exception e) {
+                    log.warn("Redis cache write failed: {}", e.getMessage());
+                }
+            }
+
+            return new ByteArrayInputStream(bytes);
         } catch (Exception e) {
             log.error("Failed to read file from MinIO: fileId={}, error={}", fileId, e.getMessage());
             throw new BusinessException("Failed to read file: " + e.getMessage());
@@ -182,6 +221,7 @@ public class DocumentService {
             kf.setErrorMsg(errorMsg);
         }
         fileMapper.updateById(kf);
+        redisTemplate.delete("preview:" + kf.getId());
         log.info("Ingestion status synced: fileId={}, minioKey={}, status={}, chunks={}",
                 kf.getId(), minioKey, status, chunkCount);
     }

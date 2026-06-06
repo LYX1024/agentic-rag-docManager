@@ -15,12 +15,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -29,9 +30,11 @@ public class ChatController {
 
     private final ChatService chatService;
     private final ThreadPoolExecutor executor;
+    private final ObjectMapper objectMapper;
 
-    public ChatController(ChatService chatService) {
+    public ChatController(ChatService chatService, ObjectMapper objectMapper) {
         this.chatService = chatService;
+        this.objectMapper = objectMapper;
         this.executor = new ThreadPoolExecutor(
                 4, 10, 60L, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(100),
@@ -75,6 +78,14 @@ public class ChatController {
         return ApiResponse.success(messages);
     }
 
+    @DeleteMapping("/session/{id}")
+    public ApiResponse<Void> deleteSession(@PathVariable Long id) {
+        ChatSession session = chatService.getSession(id);
+        chatService.evictHistoryCache(id);
+        chatService.evictSessionCache(session.getUserId());
+        return ApiResponse.success();
+    }
+
     @GetMapping("/rag")
     public SseEmitter ragChat(@RequestParam String query,
                                @RequestParam Long kbId,
@@ -113,7 +124,17 @@ public class ChatController {
                     if (chunk.getFinished()) {
                         List<SourceDoc> sourcesList = chunk.getSourcesList();
                         if (!sourcesList.isEmpty()) {
-                            sourcesJson = sourcesList.toString();
+                            List<Map<String, Object>> jsonSources = sourcesList.stream()
+                                    .map(s -> {
+                                        Map<String, Object> m = new LinkedHashMap<>();
+                                        m.put("file_name", s.getFileName());
+                                        m.put("file_ext", s.getFileExt());
+                                        m.put("chunk_text", s.getChunkText());
+                                        m.put("chunk_index", s.getChunkIndex());
+                                        m.put("score", s.getScore());
+                                        return m;
+                                    }).collect(Collectors.toList());
+                            sourcesJson = objectMapper.writeValueAsString(jsonSources);
                             emitter.send(SseEmitter.event()
                                     .name("sources")
                                     .data(sourcesJson));

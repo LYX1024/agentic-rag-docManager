@@ -23,11 +23,8 @@
 │  │    Nginx     │  │ MySQL │  │ Redis │  │   MinIO      │     │
 │  │   :80        │  │ :3306 │  │ :6379 │  │ :9000/:9001  │     │
 │  └──────────────┘  └───────┘  └───────┘  └──────────────┘     │
-│                                                                 │
-│  ┌────────────────┐  ┌──────────────────┐                      │
-│  │ RocketMQ-ns    │  │ RocketMQ-broker  │                      │
-│  │ :9876          │  │ :10911           │                      │
-│  └────────────────┘  └──────────────────┘                      │
+│                                                                │
+
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -56,10 +53,6 @@
 | MySQL | `mysql` | 8.0 | 3306 |
 | Redis | `redis` | 7-alpine | 6379 |
 | MinIO | `minio/minio` | latest | 9000/9001 |
-| RocketMQ NameServer | `rocketmqinc/rocketmq` | **4.9.6** | 9876 |
-| RocketMQ Broker | `rocketmqinc/rocketmq` | **4.9.6** | 10911/10909 |
-
-> RocketMQ 原计划使用 `apache/rocketmq:5.1.4`，因兼容性问题降级至 `rocketmqinc/rocketmq:4.9.6`。Java 端 `rocketmq-spring-boot-starter:2.2.3` 同时兼容 4.x 和 5.x，无需修改。
 
 ### Python 核心依赖
 
@@ -130,8 +123,7 @@ LLM_API_KEY=sk-your-key
 cd /mnt/d/MyProject/myKnowledgeBase
 
 # 只启动基础设施（排除 Python、Java、Nginx 的业务容器）
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio rocketmq-namesrv rocketmq-broker
-# 或
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio 
 # 不要指定服务名，让 compose 根据 profile 决定启动哪些
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
@@ -140,7 +132,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
-# 预期：mysql/redis/minio/rocketmq-namesrv/rocketmq-broker 状态均为 Up (healthy)
+# 预期：mysql/redis/minio 状态均为 Up (healthy)
 ```
 
 快速关闭:
@@ -404,24 +396,28 @@ Invoke-RestMethod -Uri http://localhost:8080/api/kb -Method Post -Body $kbBody -
 
 ---
 
-## 开发工作流
-
-### Python 热重载
-
-修改 `rag-service/` 代码后，`Ctrl+C` 停止 → 重新 `python server.py`。或使用 `watchdog`：
+## 额外：开发环境启动
 
 ```powershell
-pip install watchdog
-watchmedo auto-restart --patterns="*.py" --recursive -- python server.py
+# docker基础设施
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio 
+
+# python
+cd D:\MyProject\myKnowledgeBase\rag-service
+.\venv\Scripts\activate
+python server.py
+
+# java
+cd D:\MyProject\myKnowledgeBase\backend
+mvn spring-boot:run
+
+# vue
+cd D:\MyProject\myKnowledgeBase\frontend
+npm run dev
+
+# 关闭虚拟机
+wsl --shutdown
 ```
-
-### Java 热重载
-
-使用 Spring DevTools（已支持的 IDE 自动重启）或 `mvn spring-boot:run` 配合 DevTools。
-
-### 前端热重载
-
-Vite 默认支持 HMR，修改代码后浏览器自动刷新。
 
 ---
 
@@ -436,8 +432,6 @@ Vite 默认支持 HMR，修改代码后浏览器自动刷新。
 | Redis | localhost:6379 | 密码: redis123456 |
 | MinIO API | http://localhost:9000 | S3 兼容接口 |
 | MinIO Console | http://localhost:9001 | 管理后台 |
-| RocketMQ ns | localhost:9876 | Name Server |
-| RocketMQ br | localhost:10911 | Broker |
 
 ---
 
@@ -473,15 +467,6 @@ wsl --shutdown
 2. 确认 EMBEDDING_API_KEY 已配置且额度充足
 3. 确认 MinIO 可访问：浏览器打开 http://localhost:9001
 
-### Q: RocketMQ 占用内存过大
-
-**A**: 开发时可跳过 RocketMQ：
-
-```bash
-docker compose up -d mysql redis minio
-```
-
-文档通知功能在无 RocketMQ 时可正常使用，仅异步通知失效。
 
 ---
 
