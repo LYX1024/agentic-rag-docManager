@@ -1,8 +1,8 @@
 <template>
   <div class="flex h-screen w-screen overflow-hidden">
     <!-- Session sidebar -->
-    <aside class="w-[260px] bg-[#f5f0eb] border-r border-[#d4cdc5] flex flex-col flex-shrink-0">
-      <div class="p-4 border-b border-[#d4cdc5] flex flex-col gap-2">
+    <aside class="w-[260px] bg-[#f5f0eb] border-r border-[#d4cdc5]/40 flex flex-col flex-shrink-0">
+      <div class="p-4 border-b border-[#d4cdc5]/40 flex flex-col gap-2">
         <AppButton variant="secondary" size="sm" @click="$router.push('/dashboard')">
           ← 返回主页
         </AppButton>
@@ -15,7 +15,7 @@
           v-for="session in sessions"
           :key="session.id"
           :class="[
-            'flex items-center gap-2 px-3 py-2 cursor-pointer font-mono text-sm transition-colors mb-0.5 group',
+            'flex items-center gap-2 px-3 py-2 cursor-pointer font-light text-sm transition-colors duration-700 ease-in-out mb-0.5 group',
             session.id === chatStore.currentSessionId
               ? 'bg-[#3d3d3d] text-[#f5f0eb]'
               : 'text-[#3d3d3d] hover:bg-gray-100'
@@ -25,14 +25,14 @@
           <span></span>
           <span class="flex-1 truncate">{{ session.title }}</span>
           <button
-            class="font-mono text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer w-5 h-5 flex items-center justify-center"
+            class="font-light text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer w-5 h-5 flex items-center justify-center"
             :class="session.id === chatStore.currentSessionId ? 'text-white hover:text-[#5a7a6b]' : 'text-[#3d3d3d] hover:text-[#5a7a6b]'"
             @click.stop="handleDeleteSession(session.id)"
           >
             ×
           </button>
         </div>
-        <div v-if="sessions.length === 0" class="p-10 text-center font-mono text-xs text-gray-400">
+        <div v-if="sessions.length === 0" class="p-10 text-center font-light text-xs text-gray-400">
           <p>暂无对话记录</p>
           <p class="opacity-70 mt-1">点击上方按钮开始新对话</p>
         </div>
@@ -44,7 +44,7 @@
       <!-- Empty state -->
       <div v-if="!chatStore.currentSessionId" class="flex-1 flex flex-col items-center justify-center gap-6">
         <h2 class="font-light tracking-wide text-2xl">智能知识库问答</h2>
-        <p class="font-mono text-sm text-gray-500">选择一个知识库，开始智能对话</p>
+        <p class="font-light text-sm text-gray-500">选择一个知识库，开始智能对话</p>
         <AppButton variant="primary" size="lg" @click="showNewSessionDialog">
           开始新对话
         </AppButton>
@@ -54,7 +54,7 @@
       <template v-else>
         <!-- Messages -->
         <div ref="scrollContainer" class="flex-1 overflow-y-auto p-4 md:p-6">
-          <div v-if="messages.length === 0 && !chatStore.loading" class="flex flex-col items-center justify-center h-full text-gray-400 font-mono text-sm gap-3">
+          <div v-if="messages.length === 0 && !chatStore.loading" class="flex flex-col items-center justify-center h-full text-gray-400 font-light text-sm gap-3">
             <span class="text-4xl"></span>
             <p>开始新的对话</p>
           </div>
@@ -64,29 +64,29 @@
               :key="index"
               :message="msg"
             />
-            <div v-if="isStreaming" class="flex items-center gap-2 px-4 py-3 bg-[#f5f0eb] border-2 border-[#d4cdc5] self-start">
+            <div v-if="isStreaming" class="flex items-center gap-2 px-4 py-3 bg-[#f5f0eb] border border-[#d4cdc5]/40 self-start">
               <span class="flex gap-1">
                 <span class="w-1.5 h-1.5 bg-[#3d3d3d] rounded-none animate-bounce" style="animation-delay: 0ms" />
                 <span class="w-1.5 h-1.5 bg-[#3d3d3d] rounded-none animate-bounce" style="animation-delay: 200ms" />
                 <span class="w-1.5 h-1.5 bg-[#3d3d3d] rounded-none animate-bounce" style="animation-delay: 400ms" />
               </span>
-              <span class="font-mono text-xs text-gray-500">AI 正在思考...</span>
+              <span class="font-light text-xs text-gray-500">AI 正在思考...</span>
             </div>
           </div>
         </div>
 
         <!-- Input area -->
-        <div class="p-4 bg-[#f5f0eb] border-t-2 border-[#d4cdc5]">
+        <div class="p-4 bg-[#f5f0eb] border-t border-[#d4cdc5]/40">
           <div class="max-w-[800px] mx-auto">
             <textarea
               v-model="inputText"
               :placeholder="inputPlaceholder"
               rows="2"
-              class="bg-transparent focus:outline-none border-2 border-[#d4cdc5] px-3 py-2 w-full font-mono text-sm resize-none placeholder:text-gray-400"
+              class="bg-transparent focus:outline-none border border-[#d4cdc5]/40 px-3 py-2 w-full font-light text-sm resize-none placeholder:text-gray-400"
               @keyup.enter.exact="handleSend"
             />
             <div class="flex items-center justify-between mt-2">
-              <span class="font-mono text-xs text-gray-400">Enter 发送，Shift+Enter 换行</span>
+              <span class="font-light text-xs text-gray-400">Enter 发送，Shift+Enter 换行</span>
               <AppButton
                 variant="primary"
                 size="sm"
@@ -128,7 +128,7 @@
       width="400px"
       @update:model-value="showDeleteDialog = $event"
     >
-      <p class="font-mono text-sm">确定要删除该对话吗？</p>
+      <p class="font-light text-sm">确定要删除该对话吗？</p>
       <template #footer>
         <AppButton variant="secondary" @click="showDeleteDialog = false">取消</AppButton>
         <AppButton variant="danger" @click="confirmDeleteSession">确定删除</AppButton>

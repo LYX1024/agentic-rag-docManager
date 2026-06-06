@@ -39,18 +39,16 @@ const baseClasses = [
 
 const variantClasses: Record<string, string[]> = {
   primary: [
-    'bg-[#3d3d3d] text-[#f5f0eb]',
-    'hover:bg-[#5a7a6b] hover:brightness-95',
-    'active:bg-[#4a6358]'
+    'bg-[#5a7a6b] text-[#f5f0eb]',
+    'hover:opacity-90 hover:shadow-sm'
   ],
   secondary: [
-    'bg-white/60 text-[#3d3d3d] border border-[#d4cdc5]/30',
-    'hover:border-[#d4cdc5]/80 hover:bg-[#fcfaf8]'
+    'bg-[#f5f0eb] text-[#3d3d3d] border border-[#d4cdc5]/40',
+    'hover:shadow-sm'
   ],
   danger: [
     'bg-[#607683] text-[#f5f0eb]',
-    'hover:bg-[#4a5d6a] hover:brightness-95',
-    'active:bg-[#3d4d58]'
+    'hover:bg-[#4a5d6a] hover:brightness-95'
   ]
 }
 

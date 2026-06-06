@@ -7,26 +7,26 @@
   >
     <div class="min-h-[300px] max-h-[70vh] overflow-auto">
       <!-- Loading -->
-      <div v-if="loading" class="flex flex-col items-center justify-center min-h-[200px] text-gray-500 font-mono gap-3">
+      <div v-if="loading" class="flex flex-col items-center justify-center min-h-[200px] text-gray-500 font-light gap-3">
         <span class="text-lg animate-pulse">⋯</span>
         <p>加载中...</p>
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[200px] text-[#5a7a6b] font-mono gap-3">
+      <div v-else-if="error" class="flex flex-col items-center justify-center min-h-[200px] text-[#5a7a6b] font-light gap-3">
         <p>{{ error }}</p>
       </div>
 
       <!-- Markdown -->
       <div
         v-else-if="fileExt === '.md' || fileExt === '.txt'"
-        class="p-5 leading-relaxed text-sm max-w-[900px] mx-auto font-mono markdown-body"
+        class="p-5 leading-relaxed text-sm max-w-[900px] mx-auto font-light markdown-body"
         v-html="mdHtml"
       />
 
       <!-- PDF -->
       <div v-else-if="fileExt === '.pdf'" class="preview-pdf">
-        <div v-for="page in pdfPages" :key="page" class="mb-4 border-2 border-[#3d3d3d]">
+        <div v-for="page in pdfPages" :key="page" class="mb-4 border border-[#d4cdc5]/40">
           <canvas :ref="(el) => setCanvasRef(page, el as HTMLCanvasElement)" class="block mx-auto max-w-full h-auto" />
         </div>
       </div>
@@ -42,7 +42,7 @@
       />
 
       <!-- Unsupported -->
-      <div v-else class="flex flex-col items-center justify-center min-h-[200px] text-gray-500 font-mono gap-3">
+      <div v-else class="flex flex-col items-center justify-center min-h-[200px] text-gray-500 font-light gap-3">
         <p>暂不支持预览此文件格式 ({{ fileExt }})</p>
         <AppButton variant="secondary" @click="downloadFile">下载文件</AppButton>
       </div>

@@ -1,10 +1,10 @@
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
 const colorMap: Record<ToastType, { bg: string; text: string; border: string }> = {
-  success: { bg: '#000', text: '#fff', border: '#000' },
-  error: { bg: '#ff006e', text: '#fff', border: '#ff006e' },
-  warning: { bg: '#fff', text: '#000', border: '#000' },
-  info: { bg: '#fff', text: '#000', border: '#000' }
+  success: { bg: '#5a7a6b', text: '#f5f0eb', border: '#d4cdc5' },
+  error: { bg: '#607683', text: '#f5f0eb', border: '#d4cdc5' },
+  warning: { bg: '#c9a88c', text: '#3d3d3d', border: '#d4cdc5' },
+  info: { bg: '#f5f0eb', text: '#3d3d3d', border: '#d4cdc5' }
 }
 
 export function showToast(message: string, type: ToastType = 'info') {
@@ -13,18 +13,21 @@ export function showToast(message: string, type: ToastType = 'info') {
   toast.textContent = message
   Object.assign(toast.style, {
     position: 'fixed',
-    top: '20px',
+    top: '24px',
     left: '50%',
     transform: 'translateX(-50%)',
-    padding: '10px 24px',
+    padding: '10px 28px',
     backgroundColor: colors.bg,
     color: colors.text,
-    border: `2px solid ${colors.border}`,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '2px',
     fontFamily: "'Courier New', Courier, monospace",
-    fontSize: '14px',
+    fontSize: '13px',
+    fontWeight: '300',
+    letterSpacing: '0.025em',
     zIndex: '10000',
-    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
-    transition: 'opacity 0.3s ease',
+    boxShadow: '0 1px 4px rgba(61,61,61,0.05)',
+    transition: 'opacity 0.7s ease-in-out',
     opacity: '1'
   })
   document.body.appendChild(toast)
@@ -34,7 +37,7 @@ export function showToast(message: string, type: ToastType = 'info') {
       if (toast.parentNode) {
         document.body.removeChild(toast)
       }
-    }, 300)
+    }, 700)
   }, 2500)
 }
 

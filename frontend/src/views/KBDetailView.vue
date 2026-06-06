@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="px-6 md:px-12 py-8 max-w-7xl mx-auto" @dragenter.prevent @dragover.prevent @drop.prevent>
+    <div class="px-6 md:px-12 py-8 md:py-12 max-w-7xl mx-auto" @dragenter.prevent @dragover.prevent @drop.prevent>
       <!-- Header -->
       <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div class="flex items-center gap-4">
@@ -18,7 +18,7 @@
           <input
             v-model="searchKeyword"
             placeholder="搜索知识库文件..."
-            class="bg-white border-2 border-[#3d3d3d] focus:outline-none px-3 py-2 font-mono text-sm w-[260px] placeholder:text-gray-400"
+            class="bg-white border border-[#d4cdc5]/40 focus:outline-none px-3 py-2 font-light text-sm w-[260px] placeholder:text-gray-400"
             @keyup.enter="handleSearchInKB"
           />
         </div>
@@ -29,16 +29,16 @@
         <input
           v-model="uploadCategory"
           placeholder="输入分类（可选）"
-          class="bg-white border-2 border-[#3d3d3d] focus:outline-none px-3 py-2 font-mono text-sm w-[220px] flex-shrink-0 placeholder:text-gray-400"
+          class="bg-white border border-[#d4cdc5]/40 focus:outline-none px-3 py-2 font-light text-sm w-[220px] flex-shrink-0 placeholder:text-gray-400"
         />
         <div
-          class="flex-1 border-2 border-dashed border-[#3d3d3d] bg-white flex flex-col items-center justify-center p-6 cursor-pointer hover:border-[#5a7a6b] transition-colors"
+          class="flex-1 border border-dashed border-[#d4cdc5]/40 bg-white flex flex-col items-center justify-center p-6 cursor-pointer hover:border-[#5a7a6b] transition-colors duration-700 ease-in-out"
           @click="triggerFileInput"
           @drop.prevent="handleDrop"
         >
           <span class="text-3xl mb-2"></span>
-          <p class="font-mono text-sm text-[#3d3d3d]">将文件拖到此处，或点击上传</p>
-          <p class="font-mono text-xs text-gray-400 mt-1">支持 PDF、Word、Excel、TXT、Markdown 等格式</p>
+          <p class="font-light text-sm text-[#3d3d3d]">将文件拖到此处，或点击上传</p>
+          <p class="font-light text-xs text-gray-400 mt-1">支持 PDF、Word、Excel、TXT、Markdown 等格式</p>
         </div>
         <input
           ref="fileInputRef"
@@ -50,27 +50,27 @@
       </div>
 
       <!-- File Table Card -->
-      <div class="bg-white border-2 border-[#3d3d3d] shadow-[4px_4px_0px_0px_rgba(61,61,61,0.10)]">
-        <div class="border-b-2 border-[#3d3d3d] px-4 py-3 font-mono text-sm">
+      <div class="bg-white border border-[#d4cdc5]/40 shadow-sm">
+        <div class="border-b border-[#d4cdc5]/40 px-4 py-3 font-light text-sm">
           文件列表 ({{ total }})
         </div>
-        <div v-if="tableLoading" class="p-10 text-center font-mono text-sm text-gray-500">
+        <div v-if="tableLoading" class="p-10 text-center font-light text-sm text-gray-500">
           加载中...
         </div>
-        <div v-else-if="fileList.length === 0" class="p-10 text-center font-mono text-sm text-gray-500">
+        <div v-else-if="fileList.length === 0" class="p-10 text-center font-light text-sm text-gray-500">
           暂无文件
         </div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full font-mono text-sm">
+          <table class="w-full font-light text-sm">
             <thead>
-              <tr class="border-b-2 border-[#3d3d3d] bg-gray-50">
-                <th class="text-left px-4 py-2 font-mono text-xs">文件名</th>
-                <th class="text-center px-4 py-2 font-mono text-xs">分类</th>
-                <th class="text-center px-4 py-2 font-mono text-xs">大小</th>
-                <th class="text-center px-4 py-2 font-mono text-xs">类型</th>
-                <th class="text-center px-4 py-2 font-mono text-xs">状态</th>
-                <th class="text-center px-4 py-2 font-mono text-xs">上传时间</th>
-                <th class="text-center px-4 py-2 font-mono text-xs">操作</th>
+              <tr class="border-b border-[#d4cdc5]/40 bg-gray-50">
+                <th class="text-left px-4 py-2 font-light text-xs">文件名</th>
+                <th class="text-center px-4 py-2 font-light text-xs">分类</th>
+                <th class="text-center px-4 py-2 font-light text-xs">大小</th>
+                <th class="text-center px-4 py-2 font-light text-xs">类型</th>
+                <th class="text-center px-4 py-2 font-light text-xs">状态</th>
+                <th class="text-center px-4 py-2 font-light text-xs">上传时间</th>
+                <th class="text-center px-4 py-2 font-light text-xs">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -92,13 +92,13 @@
                   {{ formatFileSize(row.fileSize) }}
                 </td>
                 <td class="text-center px-4 py-2">
-                  <span class="text-xs border border-[#3d3d3d] px-1.5 py-0.5">
+                  <span class="text-xs border border-[#d4cdc5]/40 px-1.5 py-0.5">
                     {{ (row.fileExt || '').replace('.', '').toUpperCase() || '-' }}
                   </span>
                 </td>
                 <td class="text-center px-4 py-2">
                   <span
-                    class="text-xs px-1.5 py-0.5 border border-[#3d3d3d]"
+                    class="text-xs px-1.5 py-0.5 border border-[#d4cdc5]/40"
                     :class="statusClass(row.status)"
                   >
                     {{ statusLabel(row.status) }}
@@ -110,13 +110,13 @@
                 <td class="text-center px-4 py-2">
                   <div class="flex items-center justify-center gap-2">
                     <button
-                      class="font-mono text-xs text-[#3d3d3d] hover:text-[#5a7a6b] transition-colors cursor-pointer underline"
+                      class="font-light text-xs text-[#3d3d3d] hover:text-[#5a7a6b] transition-colors duration-700 ease-in-out cursor-pointer underline"
                       @click="handlePreview(row)"
                     >
                       预览
                     </button>
                     <button
-                      class="font-mono text-xs text-[#5a7a6b] hover:text-[#3d3d3d] transition-colors cursor-pointer underline"
+                      class="font-light text-xs text-[#5a7a6b] hover:text-[#3d3d3d] transition-colors duration-700 ease-in-out cursor-pointer underline"
                       @click="confirmDelete(row)"
                     >
                       删除
@@ -128,18 +128,18 @@
           </table>
         </div>
         <!-- Pagination -->
-        <div v-if="total > pageSize" class="flex items-center justify-end px-4 py-3 border-t-2 border-[#3d3d3d] gap-2">
-          <span class="font-mono text-xs text-gray-500">共 {{ total }} 条</span>
+        <div v-if="total > pageSize" class="flex items-center justify-end px-4 py-3 border-t border-[#d4cdc5]/40 gap-2">
+          <span class="font-light text-xs text-gray-500">共 {{ total }} 条</span>
           <button
-            class="font-mono text-xs border border-[#3d3d3d] px-2 py-1 hover:bg-[#3d3d3d] hover:text-white transition-colors cursor-pointer disabled:opacity-30"
+            class="font-light text-xs border border-[#d4cdc5]/40 px-2 py-1 hover:bg-[#3d3d3d] hover:text-white transition-colors duration-700 ease-in-out cursor-pointer disabled:opacity-30"
             :disabled="currentPage <= 1"
             @click="handlePageChange(currentPage - 1)"
           >
             上一页
           </button>
-          <span class="font-mono text-xs">{{ currentPage }} / {{ totalPages }}</span>
+          <span class="font-light text-xs">{{ currentPage }} / {{ totalPages }}</span>
           <button
-            class="font-mono text-xs border border-[#3d3d3d] px-2 py-1 hover:bg-[#3d3d3d] hover:text-white transition-colors cursor-pointer disabled:opacity-30"
+            class="font-light text-xs border border-[#d4cdc5]/40 px-2 py-1 hover:bg-[#3d3d3d] hover:text-white transition-colors duration-700 ease-in-out cursor-pointer disabled:opacity-30"
             :disabled="currentPage >= totalPages"
             @click="handlePageChange(currentPage + 1)"
           >
@@ -164,7 +164,7 @@
         width="400px"
         @update:model-value="deleteDialogVisible = $event"
       >
-        <p class="font-mono text-sm">确定要删除该文件吗？此操作不可撤销。</p>
+        <p class="font-light text-sm">确定要删除该文件吗？此操作不可撤销。</p>
         <template #footer>
           <AppButton variant="secondary" @click="deleteDialogVisible = false">取消</AppButton>
           <AppButton variant="danger" @click="executeDelete">确定删除</AppButton>

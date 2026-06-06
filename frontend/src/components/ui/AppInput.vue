@@ -30,8 +30,9 @@ function onInput(event: Event) {
 }
 
 const inputClasses = computed(() => [
-  'bg-transparent focus:outline-none border-b-2 border-[#3d3d3d]',
-  'px-3 py-2 w-full font-mono',
-  'placeholder:text-gray-400'
+  'bg-white border border-[#d4cdc5]/40 rounded-sm text-[#3d3d3d]',
+  'placeholder:text-[#a89279] focus:outline-none',
+  'transition-colors duration-700 ease-in-out',
+  'px-3 py-2 w-full font-light'
 ])
 </script>

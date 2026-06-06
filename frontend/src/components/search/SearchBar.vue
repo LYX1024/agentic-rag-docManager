@@ -1,9 +1,9 @@
 <template>
   <div class="w-full max-w-[800px] mx-auto">
-    <div class="flex border-2 border-[#3d3d3d] bg-white">
+    <div class="flex border border-[#d4cdc5]/40 bg-white">
       <select
         v-model="searchModeModel"
-        class="bg-white border-r-2 border-[#3d3d3d] px-3 py-3 font-mono text-sm focus:outline-none cursor-pointer"
+        class="bg-white border-r border-[#d4cdc5]/40 px-3 py-3 font-light text-sm focus:outline-none cursor-pointer"
       >
         <option value="hybrid">混合搜索</option>
         <option value="vector">向量搜索</option>
@@ -12,11 +12,11 @@
       <input
         v-model="queryModel"
         :placeholder="placeholder"
-        class="flex-1 bg-transparent focus:outline-none px-4 py-3 font-mono text-sm placeholder:text-gray-400"
+        class="flex-1 bg-transparent focus:outline-none px-4 py-3 font-light text-sm placeholder:text-gray-400"
         @keyup.enter="handleSearch"
       />
       <button
-        class="bg-[#3d3d3d] text-white font-mono text-sm px-6 py-3 hover:bg-[#5a7a6b] transition-colors duration-300 cursor-pointer"
+        class="bg-[#5a7a6b] text-[#f5f0eb] font-light tracking-wide text-sm px-6 py-3 hover:opacity-90 transition-colors duration-700 ease-in-out cursor-pointer"
         :disabled="loading"
         @click="handleSearch"
       >

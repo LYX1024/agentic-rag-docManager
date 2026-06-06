@@ -4,8 +4,8 @@
     <div class="flex-shrink-0 pt-1">
       <div
         :class="[
-          'w-9 h-9 flex items-center justify-center font-mono text-sm border-2 border-[#3d3d3d]',
-          message.role === 'user' ? 'bg-[#3d3d3d] text-[#f5f0eb]' : 'bg-white/60 border border-[#d4cdc5]/30 text-[#3d3d3d]'
+          'w-9 h-9 flex items-center justify-center font-light text-sm border border-[#3d3d3d]',
+          message.role === 'user' ? 'bg-[#3d3d3d] text-[#f5f0eb]' : 'bg-[#f5f0eb] border border-[#d4cdc5]/40 text-[#3d3d3d]'
         ]"
       >
         {{ message.role === 'user' ? 'U' : 'AI' }}
@@ -20,15 +20,15 @@
           'p-4 rounded-sm',
           message.role === 'user'
             ? 'bg-[#3d3d3d] text-[#f5f0eb]'
-            : 'bg-white/60 border border-[#d4cdc5]/30 text-[#3d3d3d]'
+            : 'bg-[#f5f0eb] border border-[#d4cdc5]/40 text-[#3d3d3d]'
         ]"
       >
         <div
           v-if="message.role === 'assistant'"
-          class="font-mono text-sm leading-relaxed markdown-body"
+          class="font-light text-sm leading-relaxed markdown-body"
           v-html="renderedContent"
         />
-        <div v-else class="font-mono text-sm leading-relaxed whitespace-pre-wrap break-words">
+        <div v-else class="font-light text-sm leading-relaxed whitespace-pre-wrap break-words">
           {{ message.content }}
         </div>
       </div>
@@ -38,8 +38,8 @@
         v-if="message.role === 'assistant' && groupedSources.length > 0"
         class="w-full"
       >
-        <details class="font-mono text-xs">
-          <summary class="cursor-pointer text-gray-500 py-1 hover:text-[#3d3d3d] transition-colors">
+        <details class="font-light text-xs">
+          <summary class="cursor-pointer text-gray-500 py-1 hover:text-[#3d3d3d] transition-colors duration-700 ease-in-out">
             来源 ({{ groupedSources.length }} 个文档)
           </summary>
           <div class="mt-2 flex flex-col gap-2">

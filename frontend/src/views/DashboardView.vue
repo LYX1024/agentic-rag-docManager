@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="px-6 md:px-12 py-8 max-w-6xl mx-auto">
+    <div class="px-6 md:px-12 py-8 md:py-12 max-w-6xl mx-auto">
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <h1 class="font-light tracking-wide text-2xl">我的知识库</h1>
@@ -10,7 +10,7 @@
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="p-10 font-mono text-sm text-gray-500">
+      <div v-if="loading" class="p-10 font-light text-sm text-gray-500">
         加载中...
       </div>
 

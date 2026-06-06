@@ -22,9 +22,9 @@
       </div>
 
       <!-- Search Options -->
-      <div class="flex items-center gap-8 p-3 bg-white border-2 border-[#3d3d3d] mb-5">
+      <div class="flex items-center gap-8 p-3 bg-white border border-[#d4cdc5]/40 mb-5">
         <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-[#3d3d3d] whitespace-nowrap">
+          <span class="font-light text-xs text-[#3d3d3d] whitespace-nowrap">
             相似度阈值: {{ scoreThreshold.toFixed(2) }}
           </span>
           <input
@@ -37,10 +37,10 @@
           />
         </div>
         <div class="flex items-center gap-3">
-          <span class="font-mono text-xs text-[#3d3d3d] whitespace-nowrap">返回条数</span>
+          <span class="font-light text-xs text-[#3d3d3d] whitespace-nowrap">返回条数</span>
           <select
             v-model.number="topK"
-            class="bg-white border border-[#3d3d3d] px-2 py-1 font-mono text-xs focus:outline-none"
+            class="bg-white border border-[#d4cdc5]/40 px-2 py-1 font-light text-xs focus:outline-none"
           >
             <option :value="5">5</option>
             <option :value="10">10</option>
@@ -51,8 +51,8 @@
       </div>
 
       <!-- Loading -->
-      <div v-if="searching" class="p-5 bg-white border-2 border-[#3d3d3d]">
-        <p class="font-mono text-sm text-gray-500">搜索中...</p>
+      <div v-if="searching" class="p-5 bg-white border border-[#d4cdc5]/40">
+        <p class="font-light text-sm text-gray-500">搜索中...</p>
       </div>
 
       <!-- Empty -->
@@ -63,8 +63,8 @@
       <!-- Results -->
       <div v-else-if="results.length > 0">
         <div class="flex items-center gap-3 mb-3">
-          <span class="font-mono text-xs text-gray-500">找到 {{ total }} 条结果</span>
-          <span v-if="timeCost !== undefined" class="font-mono text-xs px-2 py-0.5 border border-[#3d3d3d] bg-white">
+          <span class="font-light text-xs text-gray-500">找到 {{ total }} 条结果</span>
+          <span v-if="timeCost !== undefined" class="font-light text-xs px-2 py-0.5 border border-[#d4cdc5]/40 bg-white">
             耗时 {{ timeCost }}ms
           </span>
         </div>

@@ -1,17 +1,17 @@
 <template>
-  <div class="bg-white/60 rounded-sm border border-[#d4cdc5]/30 p-5 mb-3 transition-all duration-700 ease-in-out">
+  <div class="bg-[#f5f0eb] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-5 mb-3 transition-colors duration-700 ease-in-out">
     <div class="mb-3">
-      <p class="font-mono text-sm leading-relaxed text-[#3d3d3d]" v-html="highlightedText" />
+      <p class="font-light text-sm leading-relaxed text-[#3d3d3d]" v-html="highlightedText" />
     </div>
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <span class="font-mono text-xs px-2 py-0.5 bg-[#c9a88c]/30 text-[#3d3d3d]">
+        <span class="font-light text-xs px-2 py-0.5 bg-[#c9a88c]/30 text-[#3d3d3d]">
           {{ result.fileSource }}
         </span>
-        <span class="font-mono text-xs text-gray-400">块 #{{ result.chunkIndex }}</span>
+        <span class="font-light text-xs text-gray-400">块 #{{ result.chunkIndex }}</span>
       </div>
       <span
-        class="font-mono text-xs px-2 py-0.5 border border-[#3d3d3d]"
+        class="font-light text-xs px-2 py-0.5 border border-[#d4cdc5]/40"
         :class="scoreClass"
       >
         {{ scorePercent }}

@@ -16,7 +16,7 @@
         <div class="flex items-center justify-between mb-4">
           <h2 class="font-light tracking-wide text-lg">{{ title }}</h2>
           <button
-            class="font-mono text-xl leading-none hover:text-[#5a7a6b] transition-colors cursor-pointer"
+            class="font-light text-xl leading-none hover:text-[#5a7a6b] transition-colors duration-700 ease-in-out cursor-pointer"
             @click="close"
           >
             ×
@@ -62,8 +62,8 @@ function close() {
 }
 
 const dialogClasses = computed(() => [
-  'relative bg-white border-2 md:border-4 border-[#3d3d3d]',
-  'shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]',
+  'relative bg-[#f5f0eb] border border-[#d4cdc5]/40',
+  'shadow-sm',
   'p-4 md:p-6 rounded-sm w-full mx-4'
 ])
 </script>

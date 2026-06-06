@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen bg-[#f5f0eb] flex items-center justify-center p-5">
-    <div class="w-full max-w-[420px] bg-white border-2 md:border-4 border-[#3d3d3d] shadow-[4px_4px_0px_0px_rgba(61,61,61,0.10)] md:shadow-[8px_8px_0px_0px_rgba(61,61,61,0.10)] p-8 md:p-10">
+  <div class="min-h-screen bg-[#f5f0eb] flex items-center justify-center py-20 px-6">
+    <div class="w-full max-w-[420px] bg-[#f5f0eb] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-8 md:p-10">
       <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="font-light tracking-wide text-3xl mb-2">MyKB</h1>
-        <p class="font-mono text-sm text-gray-500">登录您的账号</p>
+        <p class="font-light text-sm text-gray-500">登录您的账号</p>
       </div>
 
       <!-- Form -->
@@ -14,7 +14,7 @@
             v-model="form.username"
             placeholder="请输入用户名"
           />
-          <p v-if="errors.username" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.username }}</p>
+          <p v-if="errors.username" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.username }}</p>
         </div>
 
         <div>
@@ -23,7 +23,7 @@
             type="password"
             placeholder="请输入密码"
           />
-          <p v-if="errors.password" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.password }}</p>
+          <p v-if="errors.password" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.password }}</p>
         </div>
 
         <AppButton variant="primary" size="lg" :disabled="loading" class="w-full mt-2">
@@ -32,9 +32,9 @@
       </form>
 
       <!-- Footer -->
-      <div class="text-center mt-5 font-mono text-xs text-gray-500">
+      <div class="text-center mt-5 font-light text-xs text-gray-500">
         <span>还没有账号？</span>
-        <router-link to="/register" class="text-[#3d3d3d] underline hover:text-[#5a7a6b] transition-colors ml-1">
+        <router-link to="/register" class="text-[#3d3d3d] underline hover:text-[#5a7a6b] transition-colors duration-700 ease-in-out ml-1">
           立即注册
         </router-link>
       </div>

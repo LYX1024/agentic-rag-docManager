@@ -8,47 +8,47 @@
     <div class="flex flex-col gap-4">
       <!-- Name -->
       <div>
-        <label class="block font-mono text-sm mb-1">知识库名称 *</label>
+        <label class="block font-light text-sm mb-1">知识库名称 *</label>
         <AppInput
           v-model="form.name"
           placeholder="请输入知识库名称"
         />
-        <p v-if="errors.name" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.name }}</p>
+        <p v-if="errors.name" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.name }}</p>
       </div>
 
       <!-- Description -->
       <div>
-        <label class="block font-mono text-sm mb-1">描述</label>
+        <label class="block font-light text-sm mb-1">描述</label>
         <textarea
           v-model="form.description"
           placeholder="请输入知识库描述（选填）"
           maxlength="200"
           rows="3"
-          class="bg-transparent focus:outline-none border-b-2 border-[#3d3d3d] px-3 py-2 w-full font-mono resize-none placeholder:text-gray-400 text-sm"
+          class="bg-transparent focus:outline-none border-b-2 border-[#3d3d3d] px-3 py-2 w-full font-light resize-none placeholder:text-gray-400 text-sm"
         />
-        <p class="font-mono text-xs text-gray-400 mt-1">{{ form.description?.length ?? 0 }}/200</p>
+        <p class="font-light text-xs text-gray-400 mt-1">{{ form.description?.length ?? 0 }}/200</p>
       </div>
 
       <!-- VS Type -->
       <div>
-        <label class="block font-mono text-sm mb-1">向量库类型 *</label>
+        <label class="block font-light text-sm mb-1">向量库类型 *</label>
         <AppSelect
           v-model="form.vsType"
           :options="vsTypeOptions"
           placeholder="请选择向量库类型"
         />
-        <p v-if="errors.vsType" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.vsType }}</p>
+        <p v-if="errors.vsType" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.vsType }}</p>
       </div>
 
       <!-- Embed Model -->
       <div>
-        <label class="block font-mono text-sm mb-1">嵌入模型 *</label>
+        <label class="block font-light text-sm mb-1">嵌入模型 *</label>
         <AppSelect
           v-model="form.embedModel"
           :options="embedModelOptions"
           placeholder="请选择嵌入模型"
         />
-        <p v-if="errors.embedModel" class="font-mono text-xs text-[#5a7a6b] mt-1">{{ errors.embedModel }}</p>
+        <p v-if="errors.embedModel" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.embedModel }}</p>
       </div>
     </div>
 
