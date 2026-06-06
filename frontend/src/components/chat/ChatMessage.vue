@@ -10,15 +10,15 @@
         <div v-else class="message-text">{{ message.content }}</div>
       </div>
       <div
-        v-if="message.role === 'assistant' && message.sources && message.sources.length > 0"
+        v-if="message.role === 'assistant' && groupedSources.length > 0"
         class="message-sources"
       >
         <el-collapse>
-          <el-collapse-item title="来源" name="1">
+          <el-collapse-item :title="'来源 (' + groupedSources.length + ' 个文档)'" name="1">
             <SourceCitation
-              v-for="(source, idx) in message.sources"
+              v-for="(group, idx) in groupedSources"
               :key="idx"
-              :source="source"
+              :group="group"
             />
           </el-collapse-item>
         </el-collapse>
@@ -42,6 +42,19 @@ const renderedContent = computed(() => {
   if (props.message.role !== 'assistant') return ''
   const html = marked(props.message.content, { async: false }) as string
   return DOMPurify.sanitize(html)
+})
+
+const groupedSources = computed(() => {
+  const sources = props.message.sources
+  if (!sources || !Array.isArray(sources) || sources.length === 0) return []
+  const groups: Record<string, { file_name: string; chunks: any[]; bestScore: number }> = {}
+  for (const s of sources) {
+    const key = s.file_name || 'unknown'
+    if (!groups[key]) groups[key] = { file_name: key, chunks: [], bestScore: 0 }
+    groups[key].chunks.push(s)
+    groups[key].bestScore = Math.max(groups[key].bestScore, s.score || 0)
+  }
+  return Object.values(groups).sort((a, b) => b.bestScore - a.bestScore)
 })
 </script>
 
