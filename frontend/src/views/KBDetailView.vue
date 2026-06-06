@@ -20,12 +20,7 @@
     <div class="px-6 md:px-12 py-8 md:py-12 max-w-7xl mx-auto" @dragenter.prevent @dragover.prevent @drop.prevent>
       <!-- Header -->
       <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div class="flex items-center gap-4">
-          <AppButton variant="secondary" size="sm" @click="goBack">
-            ← 返回
-          </AppButton>
-          <h1 class="font-light tracking-wide text-2xl">{{ kbName }}</h1>
-        </div>
+        <h1 class="font-light tracking-wide text-2xl">{{ kbName }}</h1>
         <div class="flex items-center gap-3 flex-wrap">
           <AppSelect
             v-model="filterCategory"

@@ -5,9 +5,14 @@
         <NavLinks :current="currentHighlight" @docbase="goDocBase" />
         <div class="flex-1" />
         <div class="p-4 border-t border-[#d4cdc5]/40 flex items-center justify-between">
-          <span class="font-light text-sm text-[#3d3d3d]/60 truncate">{{ username }}</span>
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-full bg-[#3d3d3d] flex items-center justify-center text-[#f5f0eb] font-light text-xs flex-shrink-0">
+              {{ avatarChar }}
+            </div>
+            <span class="font-light text-sm text-[#3d3d3d] truncate">{{ username }}</span>
+          </div>
           <button
-            class="font-light text-xs text-[#3d3d3d]/40 hover:text-[#607683] transition-colors duration-700 ease-in-out cursor-pointer"
+            class="font-light text-xs text-[#3d3d3d]/40 hover:text-[#607683] transition-colors duration-700 ease-in-out cursor-pointer flex-shrink-0 ml-2"
             @click="handleLogout"
           >退出</button>
         </div>
@@ -20,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useKBStore } from '@/stores/knowledgeBase'
@@ -32,6 +37,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 const kbStore = useKBStore()
 const username = computed(() => authStore.user?.username || '')
+const avatarChar = computed(() => {
+  const name = username.value || 'U'
+  return name.charAt(0).toUpperCase()
+})
 
 const currentHighlight = computed(() => {
   if (route.path === '/dashboard') return '/dashboard'
@@ -39,6 +48,8 @@ const currentHighlight = computed(() => {
   if (route.path.startsWith('/chat')) return '/chat'
   return null
 })
+
+onMounted(() => { authStore.fetchUser() })
 
 async function goDocBase() {
   await kbStore.fetchKBList()
