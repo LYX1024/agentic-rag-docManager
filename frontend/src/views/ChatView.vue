@@ -3,6 +3,9 @@
     <!-- Session sidebar -->
     <div class="chat-sidebar">
       <div class="sidebar-header">
+        <el-button :icon="ArrowLeft" size="default" @click="$router.push('/dashboard')">
+          返回主页
+        </el-button>
         <el-button
           type="primary"
           :icon="Plus"
@@ -116,7 +119,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete, Promotion, ChatDotRound, Cpu } from '@element-plus/icons-vue'
+import { Plus, Delete, Promotion, ChatDotRound, Cpu, ArrowLeft } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
 import { useKBStore } from '@/stores/knowledgeBase'
 import type { KnowledgeBase } from '@/api/knowledgeBase'
@@ -290,6 +293,9 @@ async function handleSend() {
     .sidebar-header {
       padding: 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
 
       .new-session-btn {
         width: 100%;

@@ -8,6 +8,15 @@
     <div class="kb-card-header">
       <el-icon class="kb-icon" :size="28"><Folder /></el-icon>
       <h3 class="kb-name">{{ kb.name }}</h3>
+      <el-popconfirm
+        title="确定要删除此知识库及其所有文件？"
+        @confirm="handleDelete"
+        @click.stop
+      >
+        <template #reference>
+          <el-button class="delete-btn" :icon="Delete" size="small" text type="danger" @click.stop />
+        </template>
+      </el-popconfirm>
     </div>
     <p class="kb-description">{{ truncatedDescription }}</p>
     <div class="kb-meta">
@@ -23,7 +32,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { KnowledgeBase } from '@/api/knowledgeBase'
-import { Folder, Document } from '@element-plus/icons-vue'
+import { Folder, Document, Delete } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   kb: KnowledgeBase
@@ -31,7 +40,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'click', kb: KnowledgeBase): void
+  (e: 'delete', kb: KnowledgeBase): void
 }>()
+
+function handleDelete() {
+  emit('delete', props.kb)
+}
 
 const truncatedDescription = computed(() => {
   const desc = props.kb.description || '暂无描述'
@@ -79,6 +93,16 @@ function handleClick() {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    .delete-btn {
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  }
+
+  &:hover .delete-btn {
+    opacity: 1;
   }
 
   .kb-description {

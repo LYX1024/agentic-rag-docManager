@@ -24,6 +24,7 @@
           :key="kb.id"
           :kb="kb"
           @click="goToKB"
+          @delete="handleDeleteKB"
         />
       </div>
 
@@ -83,6 +84,16 @@ async function handleCreate(data: CreateKBParams) {
     await fetchList()
   } catch {
     ElMessage.error('创建知识库失败')
+  }
+}
+
+async function handleDeleteKB(kb: KnowledgeBase) {
+  try {
+    await kbStore.deleteKB(kb.id)
+    ElMessage.success('知识库已删除')
+    await fetchList()
+  } catch {
+    ElMessage.error('删除知识库失败')
   }
 }
 </script>
