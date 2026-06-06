@@ -5,7 +5,7 @@
       <div
         :class="[
           'w-9 h-9 flex items-center justify-center font-light text-sm border border-[#3d3d3d]',
-          message.role === 'user' ? 'bg-[#3d3d3d] text-[#F9F6F3]' : 'bg-[#F9F6F3] border border-[#d4cdc5]/40 text-[#3d3d3d]'
+          message.role === 'user' ? 'bg-[#3d3d3d] text-[#f5f0eb]' : 'bg-[#f5f0eb] border border-[#d4cdc5]/40 text-[#3d3d3d]'
         ]"
       >
         {{ message.role === 'user' ? 'U' : 'AI' }}
@@ -19,8 +19,8 @@
         :class="[
           'p-4 rounded-sm',
           message.role === 'user'
-            ? 'bg-[#3d3d3d] text-[#F9F6F3]'
-            : 'bg-[#F9F6F3] border border-[#d4cdc5]/40 text-[#3d3d3d]'
+            ? 'bg-[#3d3d3d] text-[#f5f0eb]'
+            : 'bg-[#f5f0eb] border border-[#d4cdc5]/40 text-[#3d3d3d]'
         ]"
       >
         <div
