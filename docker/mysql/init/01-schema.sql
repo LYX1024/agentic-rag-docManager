@@ -48,18 +48,6 @@ CREATE TABLE IF NOT EXISTS `kb_file` (
     INDEX `idx_kb_file_category` (`kb_id`, `category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ==================== File Chunk Table ====================
-CREATE TABLE IF NOT EXISTS `kb_chunk` (
-    `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `file_id` BIGINT NOT NULL,
-    `chunk_index` INT NOT NULL,
-    `chunk_text_hash` VARCHAR(64) NOT NULL,
-    `vs_doc_id` VARCHAR(255),
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (`file_id`) REFERENCES `kb_file`(`id`) ON DELETE CASCADE,
-    INDEX `idx_kb_chunk_file_id` (`file_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- ==================== Chat Session Table ====================
 CREATE TABLE IF NOT EXISTS `chat_session` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,

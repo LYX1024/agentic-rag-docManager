@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.DocumentClient;
-import com.mykb.mapper.FileChunkMapper;
 import com.mykb.mapper.KnowledgeFileMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
@@ -34,19 +33,17 @@ public class DocumentService {
 
     private final MinioClient minioClient;
     private final KnowledgeFileMapper fileMapper;
-    private final FileChunkMapper chunkMapper;
     private final DocumentClient documentClient;
     private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final KBService kbService;
 
     public DocumentService(MinioClient minioClient, KnowledgeFileMapper fileMapper,
-                           FileChunkMapper chunkMapper, DocumentClient documentClient,
+                           DocumentClient documentClient,
                            org.springframework.data.redis.core.StringRedisTemplate redisTemplate,
                            ObjectMapper objectMapper, KBService kbService) {
         this.minioClient = minioClient;
         this.fileMapper = fileMapper;
-        this.chunkMapper = chunkMapper;
         this.documentClient = documentClient;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
@@ -208,9 +205,6 @@ public class DocumentService {
         } catch (Exception e) {
             log.warn("MinIO deletion failed (non-fatal): key={}, error={}", kf.getFilePathInMinio(), e.getMessage());
         }
-
-        chunkMapper.deleteByFileId(fileId);
-        log.info("Chunks deleted for fileId={}", fileId);
 
         try {
             documentClient.deleteDocument(kf.getKbId(), kf.getId(), kf.getFilePathInMinio());
