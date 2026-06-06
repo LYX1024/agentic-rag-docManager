@@ -13,7 +13,7 @@ export interface ChatMessage {
   id?: number
   role: 'user' | 'assistant'
   content: string
-  sources?: string
+  sources?: string | any[]
   createdAt?: string
 }
 

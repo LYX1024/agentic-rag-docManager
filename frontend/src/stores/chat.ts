@@ -29,7 +29,10 @@ export const useChatStore = defineStore('chat', () => {
     loading.value = true
     try {
       const res = await chatApi.getHistory(sessionId)
-      messages.value = res.data
+      messages.value = (res.data || []).map(m => ({
+        ...m,
+        sources: typeof m.sources === 'string' ? JSON.parse(m.sources || '[]') : (m.sources || [])
+      }))
     } finally {
       loading.value = false
     }
