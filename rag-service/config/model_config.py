@@ -7,9 +7,10 @@ import yaml
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-load_dotenv()
-
+# Load .env from project root (2 levels up from rag-service/config/)
 CONFIG_DIR = Path(__file__).parent
+PROJECT_ROOT = CONFIG_DIR.parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 DEFAULT_CONFIG = CONFIG_DIR / "config.yaml"
 
 
@@ -74,6 +75,9 @@ class AppConfig(BaseModel):
     ocr: OCRConfig = OCRConfig()
     storage: StorageConfig = StorageConfig()
     llm: LLMConfig = LLMConfig()
+    redis_host: str = os.getenv("REDIS_HOST", "localhost")
+    redis_port: int = int(os.getenv("REDIS_PORT", "6379"))
+    redis_password: str = os.getenv("REDIS_PASSWORD", "")
 
 
 def load_config(config_path: Optional[Path] = None) -> AppConfig:

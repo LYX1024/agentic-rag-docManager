@@ -6,27 +6,56 @@ import com.mykb.dto.ChatSessionCreateRequest;
 import com.mykb.entity.ChatMessage;
 import com.mykb.entity.ChatSession;
 import com.mykb.proto.chat.RagChatChunk;
-import com.mykb.proto.chat.RagChatRequest;
 import com.mykb.proto.common.SourceDoc;
 import com.mykb.service.ChatService;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/chat")
-@RequiredArgsConstructor
 public class ChatController {
 
     private final ChatService chatService;
+    private final ThreadPoolExecutor executor;
+    private final ObjectMapper objectMapper;
+
+    public ChatController(ChatService chatService, ObjectMapper objectMapper) {
+        this.chatService = chatService;
+        this.objectMapper = objectMapper;
+        this.executor = new ThreadPoolExecutor(
+                4, 10, 60L, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(100),
+                r -> new Thread(r, "rag-chat"),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+        this.executor.allowCoreThreadTimeOut(true);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
 
     @PostMapping("/session")
     public ApiResponse<ChatSession> createSession(@Valid @RequestBody ChatSessionCreateRequest request,
@@ -49,6 +78,14 @@ public class ChatController {
         return ApiResponse.success(messages);
     }
 
+    @DeleteMapping("/session/{id}")
+    public ApiResponse<Void> deleteSession(@PathVariable Long id) {
+        ChatSession session = chatService.getSession(id);
+        chatService.evictHistoryCache(id);
+        chatService.evictSessionCache(session.getUserId());
+        return ApiResponse.success();
+    }
+
     @GetMapping("/rag")
     public SseEmitter ragChat(@RequestParam String query,
                                @RequestParam Long kbId,
@@ -68,7 +105,7 @@ public class ChatController {
         }
 
         String finalSessionId = effectiveSessionId;
-        new Thread(() -> {
+        executor.execute(() -> {
             StringBuilder fullContent = new StringBuilder();
             String sourcesJson = null;
             try {
@@ -87,7 +124,17 @@ public class ChatController {
                     if (chunk.getFinished()) {
                         List<SourceDoc> sourcesList = chunk.getSourcesList();
                         if (!sourcesList.isEmpty()) {
-                            sourcesJson = sourcesList.toString();
+                            List<Map<String, Object>> jsonSources = sourcesList.stream()
+                                    .map(s -> {
+                                        Map<String, Object> m = new LinkedHashMap<>();
+                                        m.put("file_name", s.getFileName());
+                                        m.put("file_ext", s.getFileExt());
+                                        m.put("chunk_text", s.getChunkText());
+                                        m.put("chunk_index", s.getChunkIndex());
+                                        m.put("score", s.getScore());
+                                        return m;
+                                    }).collect(Collectors.toList());
+                            sourcesJson = objectMapper.writeValueAsString(jsonSources);
                             emitter.send(SseEmitter.event()
                                     .name("sources")
                                     .data(sourcesJson));
@@ -111,9 +158,9 @@ public class ChatController {
                 } catch (IOException ex) {
                     log.error("Failed to send error event", ex);
                 }
-                emitter.completeWithError(e);
+                emitter.complete();
             }
-        }, "rag-chat-" + finalSessionId).start();
+        });
 
         return emitter;
     }

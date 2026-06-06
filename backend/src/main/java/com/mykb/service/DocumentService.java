@@ -1,12 +1,13 @@
 package com.mykb.service;
 
 import cn.hutool.core.util.IdUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.DocumentClient;
-import com.mykb.proto.document.DocumentService;
-import com.mykb.repository.FileChunkRepository;
-import com.mykb.repository.KnowledgeFileRepository;
+import com.mykb.mapper.FileChunkMapper;
+import com.mykb.mapper.KnowledgeFileMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -15,36 +16,44 @@ import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DocumentService {
 
     private final MinioClient minioClient;
-    private final KnowledgeFileRepository fileRepository;
-    private final FileChunkRepository chunkRepository;
+    private final KnowledgeFileMapper fileMapper;
+    private final FileChunkMapper chunkMapper;
     private final DocumentClient documentClient;
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+
+    public DocumentService(MinioClient minioClient, KnowledgeFileMapper fileMapper,
+                           FileChunkMapper chunkMapper, DocumentClient documentClient,
+                           org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+        this.minioClient = minioClient;
+        this.fileMapper = fileMapper;
+        this.chunkMapper = chunkMapper;
+        this.documentClient = documentClient;
+        this.redisTemplate = redisTemplate;
+    }
 
     @Value("${minio.bucket}")
     private String bucketName;
 
-    @Transactional
     public KnowledgeFile uploadFile(Long kbId, MultipartFile file, String category) {
         String originalFilename = file.getOriginalFilename();
         String fileExt = "";
         if (originalFilename != null && originalFilename.contains(".")) {
             fileExt = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
-        String safeCategory = category != null ? category.trim() : "";
+        String safeCategory = (category != null && !category.trim().isEmpty()) ? category.trim() : "default";
         String uuid = IdUtil.fastSimpleUUID();
         String minioKey = safeCategory.isEmpty()
                 ? kbId + "/" + uuid + "/" + originalFilename
@@ -77,40 +86,41 @@ public class DocumentService {
         kf.setFileSize(file.getSize());
         kf.setFilePathInMinio(minioKey);
         kf.setStatus("UPLOADED");
-        KnowledgeFile saved = fileRepository.save(kf);
-        log.info("KnowledgeFile saved: fileId={}, kbId={}, filename={}", saved.getId(), kbId, originalFilename);
+        fileMapper.insert(kf);
+        log.info("KnowledgeFile saved: fileId={}, kbId={}, filename={}", kf.getId(), kbId, originalFilename);
 
         try {
             documentClient.uploadDocument(kbId, originalFilename, fileExt, file.getSize(), minioKey);
-            saved.setStatus("COMPLETED");
-            fileRepository.save(saved);
-            log.info("Document processing completed by Python service: fileId={}", saved.getId());
+            kf.setStatus("PARSING");
+            fileMapper.updateById(kf);
+            log.info("Async ingestion submitted: fileId={}", kf.getId());
         } catch (Exception e) {
-            saved.setStatus("FAILED");
-            saved.setErrorMsg(e.getMessage());
-            fileRepository.save(saved);
-            log.error("Python document processing failed: fileId={}, error={}", saved.getId(), e.getMessage(), e);
-            throw new BusinessException("Document uploaded to MinIO but Python processing failed: " + e.getMessage());
+            kf.setStatus("FAILED");
+            kf.setErrorMsg(e.getMessage());
+            fileMapper.updateById(kf);
+            log.error("Failed to submit ingestion: fileId={}, error={}", kf.getId(), e.getMessage(), e);
         }
 
-        return saved;
+        return kf;
     }
 
-    public Page<KnowledgeFile> listDocuments(Long kbId, String category, PageRequest pageRequest) {
+    public IPage<KnowledgeFile> listDocuments(Long kbId, String category, int pageNum, int pageSize) {
+        Page<KnowledgeFile> page = new Page<>(pageNum, pageSize);
         if (category != null && !category.isBlank()) {
-            return fileRepository.findByKbIdAndCategory(kbId, category, pageRequest);
+            return fileMapper.selectPageByKbIdAndCategory(page, kbId, category);
         }
-        return fileRepository.findByKbId(kbId, pageRequest);
+        return fileMapper.selectPageByKbId(page, kbId);
     }
 
     public List<String> getCategories(Long kbId) {
-        return fileRepository.findDistinctCategoriesByKbId(kbId);
+        return fileMapper.selectDistinctCategoriesByKbId(kbId);
     }
 
-    @Transactional
     public void deleteDocument(Long fileId) {
-        KnowledgeFile kf = fileRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(404, "Document not found"));
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
 
         try {
             minioClient.removeObject(
@@ -124,7 +134,7 @@ public class DocumentService {
             log.warn("MinIO deletion failed (non-fatal): key={}, error={}", kf.getFilePathInMinio(), e.getMessage());
         }
 
-        chunkRepository.deleteByFileId(fileId);
+        chunkMapper.deleteByFileId(fileId);
         log.info("Chunks deleted for fileId={}", fileId);
 
         try {
@@ -133,14 +143,87 @@ public class DocumentService {
             log.warn("Python document deletion failed (non-fatal): fileId={}, error={}", fileId, e.getMessage());
         }
 
-        fileRepository.delete(kf);
+        fileMapper.deleteById(kf.getId());
+        redisTemplate.delete("preview:" + fileId);
         log.info("Document deleted: fileId={}", fileId);
     }
 
     public String getDocumentStatus(Long fileId) {
-        KnowledgeFile kf = fileRepository.findById(fileId)
-                .orElseThrow(() -> new BusinessException(404, "Document not found"));
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
         return kf.getStatus();
+    }
+
+    public InputStream getFileContent(Long fileId) {
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
+
+        // Check Redis cache first
+        String cacheKey = "preview:" + fileId;
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("Preview cache hit: fileId={}", fileId);
+                return new ByteArrayInputStream(java.util.Base64.getDecoder().decode(cached));
+            }
+        } catch (Exception e) {
+            log.warn("Redis cache read failed, falling back to MinIO: {}", e.getMessage());
+        }
+
+        try {
+            byte[] bytes = minioClient.getObject(
+                    io.minio.GetObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(kf.getFilePathInMinio())
+                            .build()).readAllBytes();
+
+            // Cache in Redis for 30 min (files under 5MB)
+            if (bytes.length <= 5 * 1024 * 1024) {
+                try {
+                    redisTemplate.opsForValue().set(cacheKey,
+                            java.util.Base64.getEncoder().encodeToString(bytes),
+                            Duration.ofMinutes(30));
+                } catch (Exception e) {
+                    log.warn("Redis cache write failed: {}", e.getMessage());
+                }
+            }
+
+            return new ByteArrayInputStream(bytes);
+        } catch (Exception e) {
+            log.error("Failed to read file from MinIO: fileId={}, error={}", fileId, e.getMessage());
+            throw new BusinessException("Failed to read file: " + e.getMessage());
+        }
+    }
+
+    public KnowledgeFile getFile(Long fileId) {
+        KnowledgeFile kf = fileMapper.selectById(fileId);
+        if (kf == null) {
+            throw new BusinessException(404, "Document not found");
+        }
+        return kf;
+    }
+
+    public void syncIngestionStatus(String minioKey, String status, int chunkCount, String errorMsg) {
+        KnowledgeFile kf = fileMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<KnowledgeFile>()
+                        .eq(KnowledgeFile::getFilePathInMinio, minioKey));
+        if (kf == null) {
+            log.warn("Ingestion callback for unknown file: minioKey={}", minioKey);
+            return;
+        }
+        kf.setStatus(status);
+        kf.setChunkCount(chunkCount);
+        if (errorMsg != null && !errorMsg.isEmpty()) {
+            kf.setErrorMsg(errorMsg);
+        }
+        fileMapper.updateById(kf);
+        redisTemplate.delete("preview:" + kf.getId());
+        log.info("Ingestion status synced: fileId={}, minioKey={}, status={}, chunks={}",
+                kf.getId(), minioKey, status, chunkCount);
     }
 
     private void ensureBucketExists() {

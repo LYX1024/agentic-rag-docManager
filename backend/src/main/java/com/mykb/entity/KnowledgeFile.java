@@ -1,6 +1,9 @@
 package com.mykb.entity;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -9,62 +12,43 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "kb_file", indexes = {
-    @Index(name = "idx_kb_file_kb_id", columnList = "kb_id"),
-    @Index(name = "idx_kb_file_status", columnList = "status"),
-    @Index(name = "idx_kb_file_category", columnList = "kb_id, category")
-})
+@TableName("kb_file")
 public class KnowledgeFile {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(name = "kb_id", nullable = false)
+    @TableField("kb_id")
     private Long kbId;
 
-    @Column(length = 100)
-    private String category = "";
+    private String category;
 
-    @Column(name = "file_name", nullable = false, length = 255)
+    @TableField("file_name")
     private String fileName;
 
-    @Column(name = "file_ext", length = 20)
+    @TableField("file_ext")
     private String fileExt;
 
-    @Column(name = "file_size")
+    @TableField("file_size")
     private Long fileSize;
 
-    @Column(name = "file_path_in_minio", length = 500)
+    @TableField("file_path_in_minio")
     private String filePathInMinio;
 
-    @Column(name = "file_version")
+    @TableField("file_version")
     private Integer fileVersion = 1;
 
-    @Column(length = 20)
     private String status = "UPLOADED";
 
-    @Column(name = "error_msg", columnDefinition = "TEXT")
+    @TableField("error_msg")
     private String errorMsg;
 
-    @Column(name = "chunk_count")
+    @TableField("chunk_count")
     private Integer chunkCount = 0;
 
-    @Column(name = "created_at", updatable = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @TableField("updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

@@ -1,7 +1,7 @@
+# 所有 API 密钥、端点、模型名称从 .env 读取，此处仅保留算法参数
+
 embedding:
-  api_base: "https://api.openai.com/v1"
-  model: "text-embedding-3-small"
-  dimension: 1536
+  dimension: 1024
 
 vector_store:
   type: "faiss"
@@ -16,7 +16,7 @@ retriever:
   bm25_weight: 0.3
   vector_weight: 0.7
   top_k: 5
-  score_threshold: 0.35
+  score_threshold: 0.0
   rrf_k: 60
 
 reranker:
@@ -33,5 +33,4 @@ storage:
   temp_dir: "/tmp/rag-service"
 
 llm:
-  model: "gpt-4o-mini"
   temperature: 0.7

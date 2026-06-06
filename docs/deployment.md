@@ -30,7 +30,18 @@ MINIO_SECRET_KEY=minioadmin123
 
 重排序模型 `bge-reranker-large` 约1.3GB，首次运行时会自动从HuggingFace下载。如网络受限，可预先下载到 `~/.cache/huggingface/hub/`。
 
-### 3. 构建并启动
+### 3. 构建前端
+
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+> `npm install` 会安装 `pdfjs-dist`（PDF预览）、`mammoth`（Word预览）、`marked`（Markdown预览）、`dompurify`（XSS防护）等渲染库。
+
+### 4. 构建并启动
 
 ```bash
 # 在项目根目录执行
@@ -39,7 +50,7 @@ docker compose up -d --build
 
 首次构建需要下载基础镜像和依赖包，约5-15分钟。后续启动只需几秒。
 
-### 4. 验证服务状态
+### 5. 验证服务状态
 
 ```bash
 docker compose ps
@@ -47,7 +58,7 @@ docker compose ps
 
 预期所有8个服务的 STATUS 列均为 `Up (healthy)`。
 
-### 5. 访问系统
+### 6. 访问系统
 
 | 服务 | 地址 |
 |------|------|
@@ -55,7 +66,7 @@ docker compose ps
 | MinIO控制台 | http://localhost:9001 (minioadmin/minioadmin123) |
 | Java Actuator | http://localhost/health |
 
-### 6. 默认管理员账号
+### 7. 默认管理员账号
 
 - 用户名: `admin`
 - 密码: `admin123`

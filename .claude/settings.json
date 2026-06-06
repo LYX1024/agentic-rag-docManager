@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \"cd 'd:/MyProject/myKnowledgeBase/backend'; Invoke-WebRequest -Uri 'https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.3.2/maven-wrapper-3.3.2.jar' -OutFile '.mvn/wrapper/maven-wrapper.jar'\")",
+      "Bash(chmod +x \"d:/MyProject/myKnowledgeBase/backend/mvnw\")",
+      "Read(//d/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/boot/**)",
+      "Read(//d/Maven/tmp/apache-maven-3.8.9/boot/**)",
+      "Bash(unzip -t \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/boot/plexus-classworlds-2.6.0.jar\")",
+      "Bash(unzip -t \"D:/Maven/tmp/apache-maven-3.8.9/boot/plexus-classworlds-2.6.0.jar\")",
+      "Bash(echo \"=== fresh lib files ===\" && ls \"D:/Maven/tmp/apache-maven-3.8.9/lib/\" | grep -i \"plexus\\\\|sisu\\\\|guice\" && echo \"=== broken lib files ===\" && ls \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/lib/\" | grep -i \"plexus\\\\|sisu\\\\|guice\")",
+      "Read(//d/Maven/tmp/apache-maven-3.8.9/lib/**)",
+      "Read(//d/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/lib/**)",
+      "Bash(cp \"D:/Maven/tmp/apache-maven-3.8.9/lib/org.eclipse.sisu.inject-0.3.5.jar\" \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/lib/\")",
+      "Bash(cp \"D:/Maven/tmp/apache-maven-3.8.9/lib/org.eclipse.sisu.plexus-0.3.5.jar\" \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/lib/\")",
+      "Bash(cp \"D:/Maven/tmp/apache-maven-3.8.9/lib/plexus-interpolation-1.26.jar\" \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9/lib/\")",
+      "Bash(rm -rf \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9\")",
+      "Bash(mv \"D:/Maven/tmp/apache-maven-3.8.9\" \"D:/Maven/apache-maven-3.8.9-bin/apache-maven-3.8.9\")",
+      "Bash(rm -rf \"D:/Maven/tmp\")"
+    ]
+  }
+}

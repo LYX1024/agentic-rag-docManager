@@ -30,7 +30,7 @@ export function uploadFile(kbId: number, file: File, category?: string): Promise
   })
 }
 
-export function listDocs(kbId: number, category?: string, page: number = 0, size: number = 20): Promise<ApiResponse<{ content: Document[], totalElements: number }>> {
+export function listDocs(kbId: number, category?: string, page: number = 0, size: number = 20): Promise<ApiResponse<{ records: Document[], total: number }>> {
   const params: Record<string, any> = { kbId, page, size }
   if (category) params.category = category
   return request.get('/doc/list', { params })

@@ -21,6 +21,9 @@ def serve():
     from generated import search_pb2_grpc
     from generated import chat_pb2_grpc
 
+    # Ensure all KBService implementations are registered
+    from kb_service import faiss_service  # noqa: F401
+
     from services.kb_management_service import KBManagementServicer
     from services.document_service import DocumentServicer
     from services.search_service import SearchServicer
@@ -47,7 +50,7 @@ def serve():
         ChatServicer(config), server
     )
 
-    server.add_insecure_port("[::]:50051")
+    server.add_insecure_port("0.0.0.0:50051")
     logger.info("RAG gRPC server starting on port 50051")
     server.start()
     logger.info("All services registered. Waiting for requests...")

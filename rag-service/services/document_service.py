@@ -1,9 +1,12 @@
 """gRPC DocumentService implementation."""
+import json
 import uuid
 from pathlib import Path
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 import grpc
+import redis
 from loguru import logger
 
 from config.model_config import AppConfig
@@ -19,6 +22,7 @@ from generated import common_pb2
 
 # In-memory document status tracker (per process)
 _doc_status_store: dict[str, dict] = {}
+_ingestion_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ingest")
 
 
 class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
@@ -70,10 +74,10 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
         return f"kb_{kb_id}"
 
     def UploadDocument(self, request, context):
-        """Upload and ingest a document into the knowledge base.
+        """Accept document upload and trigger async ingestion.
 
-        The file is already stored in MinIO by the Java client; this endpoint
-        triggers the full ingestion pipeline (download -> parse -> chunk -> embed -> store).
+        The file is already stored in MinIO by the Java client. This endpoint
+        returns immediately and processes embedding in the background.
         """
         try:
             kb_name = self._get_kb_name(request.kb_id)
@@ -103,28 +107,12 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                 "updated_at": now,
             }
 
-            result = ingest_document(
-                minio_key=minio_key,
-                kb_name=kb_name,
-                file_name=file_name,
-                file_ext=file_ext,
-                config=self.config,
-                minio_client=self.minio_client,
-                embedding_client=self.embedding_client,
+            # Submit async ingestion task
+            _ingestion_executor.submit(
+                self._run_ingestion,
+                doc_id, minio_key, kb_name, file_name, file_ext,
             )
 
-            if result.success:
-                _doc_status_store[doc_id]["status"] = common_pb2.COMPLETED
-                _doc_status_store[doc_id]["chunk_count"] = result.chunk_count
-                _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
-                logger.info(f"Document ingested successfully: {file_name} -> {result.chunk_count} chunks")
-            else:
-                _doc_status_store[doc_id]["status"] = common_pb2.FAILED
-                _doc_status_store[doc_id]["error_msg"] = result.error_msg or "Unknown error"
-                _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
-                logger.error(f"Document ingestion failed: {file_name}: {result.error_msg}")
-
-            stored = _doc_status_store[doc_id]
             return document_pb2.DocumentInfo(
                 id=hash(doc_id) & 0x7FFFFFFFFFFFFFFF,
                 kb_id=request.kb_id,
@@ -133,11 +121,11 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                 file_size=request.file_size,
                 minio_key=minio_key,
                 file_version=1,
-                status=stored["status"],
-                chunk_count=stored["chunk_count"],
-                error_msg=stored.get("error_msg", ""),
-                created_at=stored["created_at"],
-                updated_at=stored["updated_at"],
+                status=common_pb2.PARSING,
+                chunk_count=0,
+                error_msg="",
+                created_at=now,
+                updated_at=now,
             )
 
         except Exception as e:
@@ -145,6 +133,53 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(str(e))
             return document_pb2.DocumentInfo()
+
+    def _run_ingestion(self, doc_id: str, minio_key: str, kb_name: str,
+                        file_name: str, file_ext: str):
+        """Run ingestion in background thread and update status."""
+        result = ingest_document(
+            minio_key=minio_key,
+            kb_name=kb_name,
+            file_name=file_name,
+            file_ext=file_ext,
+            config=self.config,
+            minio_client=self.minio_client,
+            embedding_client=self.embedding_client,
+        )
+
+        if result.success:
+            _doc_status_store[doc_id]["status"] = common_pb2.COMPLETED
+            _doc_status_store[doc_id]["chunk_count"] = result.chunk_count
+            _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
+            logger.info(f"Ingestion complete: {file_name} -> {result.chunk_count} chunks")
+        else:
+            _doc_status_store[doc_id]["status"] = common_pb2.FAILED
+            _doc_status_store[doc_id]["error_msg"] = result.error_msg or "Unknown error"
+            _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
+            logger.error(f"Ingestion failed: {file_name}: {result.error_msg}")
+
+        # Callback Java to sync status to MySQL
+        self._notify_java(minio_key, result)
+
+    def _notify_java(self, minio_key: str, result):
+        """Notify Java backend of ingestion result via Redis Pub/Sub."""
+        try:
+            r = redis.Redis(
+                host=self.config.redis_host,
+                port=self.config.redis_port,
+                password=self.config.redis_password,
+                decode_responses=True,
+            )
+            payload = json.dumps({
+                "minio_key": minio_key,
+                "status": "COMPLETED" if result.success else "FAILED",
+                "chunk_count": result.chunk_count,
+                "error_msg": result.error_msg or "",
+            })
+            r.publish("ingestion:status", payload)
+            logger.debug(f"Published to Redis: {minio_key} -> {payload}")
+        except Exception as e:
+            logger.warning(f"Failed to publish to Redis: {e}")
 
     def ListDocuments(self, request, context):
         """List documents in a knowledge base."""

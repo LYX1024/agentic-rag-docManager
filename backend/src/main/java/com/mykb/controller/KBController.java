@@ -1,6 +1,7 @@
 package com.mykb.controller;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mykb.dto.ApiResponse;
 import com.mykb.dto.KBCreateRequest;
 import com.mykb.entity.KnowledgeBase;
@@ -9,8 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -36,20 +35,13 @@ public class KBController {
                                                   @RequestParam(defaultValue = "10") int size,
                                                   HttpServletRequest httpRequest) {
         long userId = StpUtil.getLoginIdAsLong();
-        Page<KnowledgeBase> kbs = kbService.listKBs(userId, PageRequest.of(page, size));
+        Page<KnowledgeBase> kbs = kbService.listKBs(userId, page + 1, size);
         return ApiResponse.success(kbs);
     }
 
     @GetMapping("/{id}")
     public ApiResponse<KnowledgeBase> detail(@PathVariable Long id) {
-        KnowledgeBase kb = kbService.listKBs(StpUtil.getLoginIdAsLong(), PageRequest.of(0, 1))
-                .getContent().stream()
-                .filter(k -> k.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-        if (kb == null) {
-            return ApiResponse.error(404, "Knowledge base not found");
-        }
+        KnowledgeBase kb = kbService.getKB(id);
         return ApiResponse.success(kb);
     }
 

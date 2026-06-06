@@ -18,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatClient {
 
-    private final ChatServiceGrpc.ChatServiceStub stub;
+    private final ChatServiceGrpc.ChatServiceBlockingStub stub;
 
     public Iterator<RagChatChunk> ragChat(String sessionId, String query, Long kbId, String kbName) {
         try {

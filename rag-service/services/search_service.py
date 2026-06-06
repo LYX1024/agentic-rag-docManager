@@ -75,11 +75,23 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
             vs_doc_id=item.get("id", ""),
         )
 
+    def _get_kb_name(self, kb_id: int) -> str:
+        """Resolve kb_id to kb_name via the registry."""
+        registry_path = self.persist_dir / "_kb_registry.json"
+        if registry_path.exists():
+            import json
+            with open(registry_path, "r", encoding="utf-8") as f:
+                registry = json.load(f)
+            for _, entry in registry.items():
+                if entry.get("id") == kb_id:
+                    return entry["name"]
+        return f"kb_{kb_id}"
+
     def Search(self, request, context):
         """Perform a single-strategy search (vector or BM25)."""
         try:
             query = request.query
-            kb_name = request.kb_name
+            kb_name = request.kb_name if request.kb_name else self._get_kb_name(request.kb_id)
             top_k = request.top_k or self.config.retriever.top_k
             score_threshold = request.score_threshold or self.config.retriever.score_threshold
             search_type = request.search_type or "vector"
@@ -130,7 +142,7 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
         """Perform hybrid search (BM25 + Vector RRF fusion), optionally with re-ranking."""
         try:
             query = request.query
-            kb_name = request.kb_name
+            kb_name = request.kb_name if request.kb_name else self._get_kb_name(request.kb_id)
             top_k = request.top_k or self.config.retriever.top_k
             score_threshold = request.score_threshold or self.config.retriever.score_threshold
             bm25_weight = request.bm25_weight or self.config.retriever.bm25_weight

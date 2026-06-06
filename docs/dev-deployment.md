@@ -23,11 +23,8 @@
 │  │    Nginx     │  │ MySQL │  │ Redis │  │   MinIO      │     │
 │  │   :80        │  │ :3306 │  │ :6379 │  │ :9000/:9001  │     │
 │  └──────────────┘  └───────┘  └───────┘  └──────────────┘     │
-│                                                                 │
-│  ┌────────────────┐  ┌──────────────────┐                      │
-│  │ RocketMQ-ns    │  │ RocketMQ-broker  │                      │
-│  │ :9876          │  │ :10911           │                      │
-│  └────────────────┘  └──────────────────┘                      │
+│                                                                │
+
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -35,17 +32,47 @@
 
 ---
 
-## 环境要求
+## 版本速查
+
+### 运行时环境
 
 | 组件 | 版本 | 说明 |
 |------|------|------|
+| JDK | 17 | Eclipse Temurin 推荐 |
+| Maven | 3.9+（项目内置 mvnw） | `backend/.mvn/wrapper/` |
+| Python | 3.11 | venv / conda |
+| Node.js | 18+ | npm 9+ |
 | WSL2 | 任意发行版 | Ubuntu 22.04 推荐 |
 | Docker Desktop | 24+ | 启用 WSL2 Integration |
-| JDK | 17 | Eclipse Temurin 推荐 |
-| Maven | 3.9+ | 或使用 `mvnw` |
-| Python | 3.11 | Conda/venv 推荐 |
-| Node.js | 18+ | npm 9+ |
 | 可用内存 | ≥ 8GB | WSL2 分配建议 4GB |
+
+### 中间件（Docker 容器）
+
+| 服务 | 镜像 | 版本 | 端口 |
+|------|------|------|------|
+| MySQL | `mysql` | 8.0 | 3306 |
+| Redis | `redis` | 7-alpine | 6379 |
+| MinIO | `minio/minio` | latest | 9000/9001 |
+
+### Python 核心依赖
+
+| 包 | 版本 | 说明 |
+|----|------|------|
+| grpcio | ≥ 1.60.0 | gRPC 运行时 |
+| langchain | ≥ 0.3.0 | LangChain 主包 |
+| langchain-core | ≥ 0.3.0 | Document 等核心类型 |
+| langchain-community | ≥ 0.3.0 | 文档加载器 |
+| langchain-openai | ≥ 0.3.0 | OpenAI 兼容 API |
+| langchain-text-splitters | ≥ 0.3.0 | 文本分割器 |
+| faiss-cpu | 1.7.4 | 向量相似度搜索 |
+| sentence-transformers | 2.2.2 | CrossEncoder 重排序（可选） |
+| openai | ≥ 1.6.0 | LLM / Embedding API |
+| boto3 | ≥ 1.34.0 | S3 兼容存储（MinIO） |
+| rapidocr-onnxruntime | 1.3.11 | 图片 OCR |
+
+> LangChain 系列原计划使用 `0.1.0`/`0.0.2`，但 PyPI 已 yanked 这些版本。统一升级至 `0.3.x` 稳定线，代码中的导入路径同步更新：
+> - `langchain.schema.Document` → `langchain_core.documents.Document`
+> - `langchain.text_splitter.RecursiveCharacterTextSplitter` → `langchain_text_splitters.RecursiveCharacterTextSplitter`
 
 ---
 
@@ -96,14 +123,23 @@ LLM_API_KEY=sk-your-key
 cd /mnt/d/MyProject/myKnowledgeBase
 
 # 只启动基础设施（排除 Python、Java、Nginx 的业务容器）
-docker compose up -d mysql redis minio rocketmq-namesrv rocketmq-broker
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio 
+# 不要指定服务名，让 compose 根据 profile 决定启动哪些
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 ```
 
 验证：
 
 ```bash
-docker compose ps
-# 预期：mysql/redis/minio/rocketmq-namesrv/rocketmq-broker 状态均为 Up (healthy)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
+# 预期：mysql/redis/minio 状态均为 Up (healthy)
+```
+
+快速关闭:
+
+```bash
+wsl --shutdown
+# 释放虚拟机内存，下次重新启动
 ```
 
 ### 2.3 验证各服务
@@ -192,6 +228,19 @@ RAG gRPC server starting on port 50051
 All services registered. Waiting for requests...
 ```
 
+### 3.6 首次配置后-日常开发启动服务
+
+```powershell
+# 1. 进入目录
+cd D:\MyProject\myKnowledgeBase\rag-service
+
+# 2. 激活虚拟环境（每次打开新终端都需要）
+.\venv\Scripts\activate
+
+# 3. 启动服务
+python server.py
+```
+
 ---
 
 ## 第四步：Java 后端
@@ -207,12 +256,20 @@ mvn compile
 
 ### 4.2 配置连接地址
 
+设置环境变量（PowerShell，每次新终端需执行）：
+
+```powershell
+$env:REDIS_PASSWORD="lyx1024"
+```
+
+> 或直接在系统环境变量中配置。`.env` 文件仅被 Docker/Python 自动加载，Java 需要手动设置或通过 IDE 配置。
+
 编辑 `backend/src/main/resources/application.yml`，确认以下配置（默认值指向 localhost）：
 
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/mykb?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8mb4
+    url: jdbc:mysql://localhost:3306/mykb?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
   data:
     redis:
       host: localhost
@@ -245,6 +302,22 @@ mvn spring-boot:run
 curl http://localhost:8080/actuator/health
 # 预期: {"status":"UP"}
 ```
+### 4.5 首次配置后-日常开发启动服务
+
+```powershell
+# 1. 确保基础设施已启动（WSL2 Docker 中）
+docker ps  # 检查 mysql、redis、minio 是否运行
+
+# 2. 确保 Python RAG 服务已启动
+# 在另一个终端：cd rag-service && .\venv\Scripts\activate && python server.py
+
+# 3. 启动 Java 后端
+cd D:\MyProject\myKnowledgeBase\backend
+mvn spring-boot:run
+
+# 注意：Windows环境上有无redis抢端口
+```
+
 
 ---
 
@@ -282,6 +355,13 @@ npm run dev
 
 访问 http://localhost:5173
 
+### 5.4 首次配置后-启动 dev server
+
+```powershell
+cd D:\MyProject\myKnowledgeBase\frontend
+npm run dev
+```
+
 ---
 
 ## 第六步：端到端验证
@@ -316,24 +396,28 @@ Invoke-RestMethod -Uri http://localhost:8080/api/kb -Method Post -Body $kbBody -
 
 ---
 
-## 开发工作流
-
-### Python 热重载
-
-修改 `rag-service/` 代码后，`Ctrl+C` 停止 → 重新 `python server.py`。或使用 `watchdog`：
+## 额外：开发环境启动
 
 ```powershell
-pip install watchdog
-watchmedo auto-restart --patterns="*.py" --recursive -- python server.py
+# docker基础设施
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio 
+
+# python
+cd D:\MyProject\myKnowledgeBase\rag-service
+.\venv\Scripts\activate
+python server.py
+
+# java
+cd D:\MyProject\myKnowledgeBase\backend
+mvn spring-boot:run
+
+# vue
+cd D:\MyProject\myKnowledgeBase\frontend
+npm run dev
+
+# 关闭虚拟机
+wsl --shutdown
 ```
-
-### Java 热重载
-
-使用 Spring DevTools（已支持的 IDE 自动重启）或 `mvn spring-boot:run` 配合 DevTools。
-
-### 前端热重载
-
-Vite 默认支持 HMR，修改代码后浏览器自动刷新。
 
 ---
 
@@ -348,8 +432,6 @@ Vite 默认支持 HMR，修改代码后浏览器自动刷新。
 | Redis | localhost:6379 | 密码: redis123456 |
 | MinIO API | http://localhost:9000 | S3 兼容接口 |
 | MinIO Console | http://localhost:9001 | 管理后台 |
-| RocketMQ ns | localhost:9876 | Name Server |
-| RocketMQ br | localhost:10911 | Broker |
 
 ---
 
@@ -385,15 +467,6 @@ wsl --shutdown
 2. 确认 EMBEDDING_API_KEY 已配置且额度充足
 3. 确认 MinIO 可访问：浏览器打开 http://localhost:9001
 
-### Q: RocketMQ 占用内存过大
-
-**A**: 开发时可跳过 RocketMQ：
-
-```bash
-docker compose up -d mysql redis minio
-```
-
-文档通知功能在无 RocketMQ 时可正常使用，仅异步通知失效。
 
 ---
 

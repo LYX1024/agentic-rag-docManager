@@ -1,15 +1,20 @@
 package com.mykb.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mykb.dto.ApiResponse;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.service.DocumentService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RestController
@@ -29,11 +34,11 @@ public class DocumentController {
     }
 
     @GetMapping("/list")
-    public ApiResponse<Page<KnowledgeFile>> list(@RequestParam @NotNull Long kbId,
+    public ApiResponse<IPage<KnowledgeFile>> list(@RequestParam @NotNull Long kbId,
                                                   @RequestParam(required = false) String category,
                                                   @RequestParam(defaultValue = "0") int page,
                                                   @RequestParam(defaultValue = "10") int size) {
-        Page<KnowledgeFile> files = documentService.listDocuments(kbId, category, PageRequest.of(page, size));
+        IPage<KnowledgeFile> files = documentService.listDocuments(kbId, category, page + 1, size);
         return ApiResponse.success(files);
     }
 
@@ -52,5 +57,34 @@ public class DocumentController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         documentService.deleteDocument(id);
         return ApiResponse.success();
+    }
+
+    @GetMapping("/{id}/content")
+    public void preview(@PathVariable Long id, HttpServletResponse response) {
+        KnowledgeFile kf = documentService.getFile(id);
+        response.setContentType(getContentType(kf.getFileExt()));
+        String encodedName = URLEncoder.encode(kf.getFileName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        response.setHeader("Content-Disposition",
+                "inline; filename*=UTF-8''" + encodedName);
+        try (InputStream in = documentService.getFileContent(id);
+             OutputStream out = response.getOutputStream()) {
+            in.transferTo(out);
+        } catch (Exception e) {
+            log.error("Preview failed: fileId={}, error={}", id, e.getMessage());
+            throw new com.mykb.exception.BusinessException("Failed to preview file: " + e.getMessage());
+        }
+    }
+
+    private String getContentType(String ext) {
+        return switch (ext.toLowerCase()) {
+            case ".pdf" -> "application/pdf";
+            case ".docx", ".doc" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case ".md" -> "text/markdown; charset=UTF-8";
+            case ".txt" -> "text/plain; charset=UTF-8";
+            case ".png" -> "image/png";
+            case ".jpg", ".jpeg" -> "image/jpeg";
+            default -> "application/octet-stream";
+        };
     }
 }

@@ -45,7 +45,7 @@ public class GrpcClientConfig {
     }
 
     @Bean
-    public ChatServiceGrpc.ChatServiceStub chatStub(ManagedChannel channel) {
-        return ChatServiceGrpc.newStub(channel);
+    public ChatServiceGrpc.ChatServiceBlockingStub chatStub(ManagedChannel channel) {
+        return ChatServiceGrpc.newBlockingStub(channel);
     }
 }
