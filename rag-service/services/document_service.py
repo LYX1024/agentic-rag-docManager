@@ -88,30 +88,23 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                 f"UploadDocument: kb={kb_name}, file={file_name}, minio_key={minio_key}"
             )
 
-            # Track status
-            doc_id = str(uuid.uuid4())
-            now = datetime.now().isoformat()
-            _doc_status_store[doc_id] = {
-                "id": doc_id,
-                "kb_id": request.kb_id,
-                "kb_name": kb_name,
-                "file_name": file_name,
-                "file_ext": file_ext,
-                "minio_key": minio_key,
-                "file_size": request.file_size,
-                "status": common_pb2.PARSING,
-                "chunk_count": 0,
-                "error_msg": "",
-                "created_at": now,
-                "updated_at": now,
-            }
+            # Dedup: skip if already being processed
+            if minio_key in _doc_status_store:
+                logger.warning(f"Document already being processed: {minio_key}")
+                context.set_code(grpc.StatusCode.ALREADY_EXISTS)
+                context.set_details(f"Document {file_name} is already being processed")
+                return document_pb2.DocumentInfo()
+
+            # Track active ingestion (keyed by minio_key for dedup)
+            _doc_status_store[minio_key] = common_pb2.PARSING
 
             # Submit async ingestion task
             asyncio.create_task(
-                self._run_ingestion(doc_id, minio_key, kb_name, file_name, file_ext))
+                self._run_ingestion(minio_key, kb_name, file_name, file_ext))
 
+            now = datetime.now().isoformat()
             return document_pb2.DocumentInfo(
-                id=hash(doc_id) & 0x7FFFFFFFFFFFFFFF,
+                id=hash(minio_key) & 0x7FFFFFFFFFFFFFFF,
                 kb_id=request.kb_id,
                 file_name=file_name,
                 file_ext=file_ext,
@@ -131,7 +124,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_details(str(e))
             return document_pb2.DocumentInfo()
 
-    async def _run_ingestion(self, doc_id: str, minio_key: str, kb_name: str,
+    async def _run_ingestion(self, minio_key: str, kb_name: str,
                               file_name: str, file_ext: str):
         """Run ingestion as async background task."""
         result = await ingest_document(
@@ -145,17 +138,12 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
         )
 
         if result.success:
-            _doc_status_store[doc_id]["status"] = common_pb2.COMPLETED
-            _doc_status_store[doc_id]["chunk_count"] = result.chunk_count
-            _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
             logger.info(f"Ingestion complete: {file_name} -> {result.chunk_count} chunks")
         else:
-            _doc_status_store[doc_id]["status"] = common_pb2.FAILED
-            _doc_status_store[doc_id]["error_msg"] = result.error_msg or "Unknown error"
-            _doc_status_store[doc_id]["updated_at"] = datetime.now().isoformat()
             logger.error(f"Ingestion failed: {file_name}: {result.error_msg}")
 
-        # Callback Java to sync status to MySQL
+        # Clean up in-memory tracker and notify Java
+        _doc_status_store.pop(minio_key, None)
         self._notify_java(minio_key, result)
 
     def _notify_java(self, minio_key: str, result):
@@ -208,19 +196,6 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                         "status": common_pb2.COMPLETED,
                     }
                 file_map[source]["chunk_count"] += 1
-
-            # Also include in-progress files from status store
-            for doc_id, status_entry in _doc_status_store.items():
-                if status_entry.get("kb_id") == request.kb_id:
-                    fname = status_entry["file_name"]
-                    if fname not in file_map:
-                        file_map[fname] = {
-                            "file_name": fname,
-                            "file_ext": status_entry.get("file_ext", ""),
-                            "minio_key": status_entry.get("minio_key", ""),
-                            "chunk_count": status_entry.get("chunk_count", 0),
-                            "status": status_entry.get("status", common_pb2.UPLOADED),
-                        }
 
             documents = []
             for i, (fname, info) in enumerate(file_map.items()):
@@ -293,10 +268,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             except Exception as ex:
                 logger.warning(f"Error deleting MinIO object {minio_key}: {ex}")
 
-            # Clean up status store
-            for doc_id, entry in list(_doc_status_store.items()):
-                if entry.get("minio_key") == minio_key:
-                    del _doc_status_store[doc_id]
+            _doc_status_store.pop(minio_key, None)
 
             return common_pb2.StatusResponse(
                 success=True,
@@ -367,24 +339,18 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             return common_pb2.StatusResponse(success=False, message=str(e))
 
     async def GetDocumentStatus(self, request, context):
-        """Get the processing status of a document."""
+        """Get processing status. PARSING if in active tracker, otherwise COMPLETED."""
         try:
-            # Look up in the in-memory status store by file_id
-            for doc_id, entry in _doc_status_store.items():
-                if (hash(doc_id) & 0x7FFFFFFFFFFFFFFF) == request.file_id:
-                    return document_pb2.DocStatusResponse(
-                        file_id=request.file_id,
-                        status=entry.get("status", common_pb2.FAILED),
-                        chunk_count=entry.get("chunk_count", 0),
-                        error_msg=entry.get("error_msg", ""),
-                    )
+            # Check if minio_key is in active ingestion
+            minio_key = request.minio_key if hasattr(request, 'minio_key') else ""
+            if minio_key and minio_key in _doc_status_store:
+                return document_pb2.DocStatusResponse(
+                    file_id=request.file_id, status=common_pb2.PARSING,
+                    chunk_count=0, error_msg="")
 
             return document_pb2.DocStatusResponse(
-                file_id=request.file_id,
-                status=common_pb2.COMPLETED,
-                chunk_count=0,
-                error_msg="",
-            )
+                file_id=request.file_id, status=common_pb2.COMPLETED,
+                chunk_count=0, error_msg="")
 
         except Exception as e:
             logger.error(f"GetDocumentStatus failed: {e}")

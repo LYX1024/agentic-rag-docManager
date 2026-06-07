@@ -6,7 +6,11 @@ from loguru import logger
 
 
 class KBService(ABC):
-    """Abstract base for all vector store backend implementations."""
+    """
+    Abstract base for all vector store backend implementations.
+    知识库管理接口
+    内置的装饰器和工厂模式使得能够在所需时方便的获取知识库操作实例
+    """
 
     def __init__(self, kb_name: str, persist_dir: str):
         self.kb_name = kb_name
@@ -50,7 +54,10 @@ _kb_service_registry: Dict[str, Type[KBService]] = {}
 
 
 def register_kb_service(vs_type: str):
-    """Decorator to register a KBService implementation."""
+    """
+    Decorator to register a KBService implementation.
+    装饰器：将类注册到注册表，用于手动注册类
+    """
     def decorator(cls: Type[KBService]):
         _kb_service_registry[vs_type.lower()] = cls
         logger.info(f"Registered KBService: {vs_type} -> {cls.__name__}")
@@ -59,10 +66,16 @@ def register_kb_service(vs_type: str):
 
 
 class KBServiceFactory:
-    """Factory to get the appropriate KBService implementation."""
+    """
+    Factory to get the appropriate KBService implementation.
+    工厂模式：制造指定类的实例对象
+    """
 
     @staticmethod
     def get_service(kb_name: str, vs_type: str, persist_dir: str) -> KBService:
+        """ 
+        调用此方法，从注册表中查询并返回一个类的实例
+        """
         cls = _kb_service_registry.get(vs_type.lower())
         if cls is None:
             raise ValueError(f"Unknown vs_type: {vs_type}. Registered: {list(_kb_service_registry.keys())}")
