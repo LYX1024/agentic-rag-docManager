@@ -33,11 +33,13 @@ def zh_title_enhance(docs: list[Document]) -> list[Document]:
         metadata = doc.metadata or {}
 
         # Check for title metadata key
+        # 检查标题
         title = metadata.get("title")
         if title:
             hierarchy_parts.append(str(title))
 
         # Check for hierarchy metadata (list of titles from parent sections)
+        # 检查层级列表
         hierarchy = metadata.get("hierarchy")
         if hierarchy:
             if isinstance(hierarchy, list):
@@ -46,10 +48,12 @@ def zh_title_enhance(docs: list[Document]) -> list[Document]:
                 hierarchy_parts.append(hierarchy)
 
         # Check for section or heading metadata
+        # 检查章节/小标题
         section = metadata.get("section") or metadata.get("heading")
         if section:
             hierarchy_parts.append(str(section))
 
+        # 拼接
         if hierarchy_parts:
             prefix = " > ".join(hierarchy_parts)
             # Only prepend if not already present

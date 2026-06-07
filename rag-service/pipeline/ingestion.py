@@ -78,7 +78,7 @@ async def ingest_document(
         minio_client.download_file(minio_key, str(local_path))
         logger.info(f"[{kb_name}] Downloaded: {minio_key} -> {local_path}")
 
-        # Step 2: Load document
+        # Step 2: Load document 工厂模式根据扩展名获取加载器，参考loader文件夹
         loader = LOADER_DICT.get(file_ext.lower())
         if loader is None:
             raise ValueError(f"Unsupported file type: {file_ext}")
