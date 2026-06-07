@@ -107,6 +107,7 @@ async def ingest_document(
         for i, chunk in enumerate(chunks):
             text = chunk.page_content if hasattr(chunk, "page_content") else str(chunk)
             texts.append(text)
+            # 计算内容哈希
             chunk_hash = hashlib.sha256(text.encode()).hexdigest()
             metadatas.append({
                 "source_file": file_name,
