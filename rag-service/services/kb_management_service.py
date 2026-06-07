@@ -41,7 +41,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
         with open(self._registry_path, "w", encoding="utf-8") as f:
             json.dump(self._registry, f, ensure_ascii=False, indent=2)
 
-    def CreateKB(self, request, context):
+    async def CreateKB(self, request, context):
         """Create a new knowledge base by initialising an empty FAISS index."""
         try:
             name = request.name
@@ -107,7 +107,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             context.set_details(str(e))
             return kb_management_pb2.KBInfo()
 
-    def ListKBs(self, request, context):
+    async def ListKBs(self, request, context):
         """List all knowledge bases with optional pagination."""
         try:
             page = request.page.page if request.page and request.page.page > 0 else 1
@@ -162,7 +162,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             context.set_details(str(e))
             return kb_management_pb2.ListKBResponse()
 
-    def DeleteKB(self, request, context):
+    async def DeleteKB(self, request, context):
         """Delete a knowledge base and all its vector data."""
         try:
             kb_id_str = str(request.kb_id)
@@ -198,7 +198,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             context.set_details(str(e))
             return common_pb2.StatusResponse(success=False, message=str(e))
 
-    def UpdateKB(self, request, context):
+    async def UpdateKB(self, request, context):
         """Update KB name or description."""
         try:
             kb_id_str = str(request.kb_id)
@@ -253,7 +253,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             context.set_details(str(e))
             return kb_management_pb2.KBInfo()
 
-    def GetKBStats(self, request, context):
+    async def GetKBStats(self, request, context):
         """Get statistics for a knowledge base."""
         try:
             kb_id_str = str(request.kb_id)

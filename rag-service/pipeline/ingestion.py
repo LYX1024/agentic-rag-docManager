@@ -21,7 +21,7 @@ class IngestionResult:
         self.error_msg = error_msg
 
 
-def ingest_document(
+async def ingest_document(
     minio_key: str,
     kb_name: str,
     file_name: str,
@@ -118,7 +118,7 @@ def ingest_document(
             })
 
         # Step 6: Embed
-        embeddings = embedding_client.embed_documents(texts)
+        embeddings = await embedding_client.embed_documents(texts)
         logger.info(f"[{kb_name}] Embedded {len(embeddings)} chunks, dim={len(embeddings[0]) if embeddings else 0}")
 
         # Step 7: Store in FAISS

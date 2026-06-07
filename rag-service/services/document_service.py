@@ -1,9 +1,9 @@
 """gRPC DocumentService implementation."""
+import asyncio
 import json
 import uuid
 from pathlib import Path
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
 
 import grpc
 import redis
@@ -22,7 +22,6 @@ from generated import common_pb2
 
 # In-memory document status tracker (per process)
 _doc_status_store: dict[str, dict] = {}
-_ingestion_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ingest")
 
 
 class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
@@ -73,7 +72,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                     return entry["name"]
         return f"kb_{kb_id}"
 
-    def UploadDocument(self, request, context):
+    async def UploadDocument(self, request, context):
         """Accept document upload and trigger async ingestion.
 
         The file is already stored in MinIO by the Java client. This endpoint
@@ -108,10 +107,8 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             }
 
             # Submit async ingestion task
-            _ingestion_executor.submit(
-                self._run_ingestion,
-                doc_id, minio_key, kb_name, file_name, file_ext,
-            )
+            asyncio.create_task(
+                self._run_ingestion(doc_id, minio_key, kb_name, file_name, file_ext))
 
             return document_pb2.DocumentInfo(
                 id=hash(doc_id) & 0x7FFFFFFFFFFFFFFF,
@@ -134,10 +131,10 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_details(str(e))
             return document_pb2.DocumentInfo()
 
-    def _run_ingestion(self, doc_id: str, minio_key: str, kb_name: str,
-                        file_name: str, file_ext: str):
-        """Run ingestion in background thread and update status."""
-        result = ingest_document(
+    async def _run_ingestion(self, doc_id: str, minio_key: str, kb_name: str,
+                              file_name: str, file_ext: str):
+        """Run ingestion as async background task."""
+        result = await ingest_document(
             minio_key=minio_key,
             kb_name=kb_name,
             file_name=file_name,
@@ -181,7 +178,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
         except Exception as e:
             logger.warning(f"Failed to publish to Redis: {e}")
 
-    def ListDocuments(self, request, context):
+    async def ListDocuments(self, request, context):
         """List documents in a knowledge base."""
         try:
             kb_name = self._get_kb_name(request.kb_id)
@@ -261,7 +258,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_details(str(e))
             return document_pb2.ListDocsResponse()
 
-    def DeleteDocument(self, request, context):
+    async def DeleteDocument(self, request, context):
         """Delete a document and its chunks from the knowledge base."""
         try:
             kb_name = self._get_kb_name(request.kb_id)
@@ -312,7 +309,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_details(str(e))
             return common_pb2.StatusResponse(success=False, message=str(e))
 
-    def ReprocessDocument(self, request, context):
+    async def ReprocessDocument(self, request, context):
         """Re-ingest a document (delete old chunks + re-process)."""
         try:
             kb_name = self._get_kb_name(request.kb_id)
@@ -369,7 +366,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_details(str(e))
             return common_pb2.StatusResponse(success=False, message=str(e))
 
-    def GetDocumentStatus(self, request, context):
+    async def GetDocumentStatus(self, request, context):
         """Get the processing status of a document."""
         try:
             # Look up in the in-memory status store by file_id
@@ -395,7 +392,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             context.set_details(str(e))
             return document_pb2.DocStatusResponse()
 
-    def BatchUploadDocuments(self, request, context):
+    async def BatchUploadDocuments(self, request, context):
         """Upload multiple documents in a batch."""
         try:
             responses = []
