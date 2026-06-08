@@ -25,8 +25,8 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
         self.config = config
         self.persist_dir = Path(config.vector_store.persist_directory)
         self._embedding_client: EmbeddingClient | None = None
-        self._reranker: Reranker | None = None
         self._retrievers: dict[str, HybridRetriever] = {}
+        self._bm25_retrievers: dict[str, BM25Retriever] = {}
         logger.info("SearchServicer initialized")
 
     @property
@@ -64,6 +64,7 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
         )
 
     async def Search(self, request, context):
+        """ 单一检索：Vector(语义向量)检索或BM25(关键词)检索 """
         try:
             query = request.query
             kb_name = request.kb_name if request.kb_name else self._get_kb_name(request.kb_id)
@@ -82,7 +83,9 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
             start_time = time.time()
 
             if search_type == "bm25":
-                results = await asyncio.to_thread(BM25Retriever(kb_svc).search, query, top_k=top_k)
+                if kb_name not in self._bm25_retrievers:
+                    self._bm25_retrievers[kb_name] = BM25Retriever(kb_svc)
+                results = await asyncio.to_thread(self._bm25_retrievers[kb_name].search, query, top_k=top_k)
             else:
                 query_emb = await self.embedding_client.embed_query(query)
                 results = kb_svc.search(query_emb, top_k, score_threshold)
@@ -104,6 +107,7 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
             return search_pb2.SearchResponse()
 
     async def HybridSearch(self, request, context):
+        """ 混合检索：BM25 + 向量 + RRF融合 """
         try:
             query = request.query
             kb_name = request.kb_name if request.kb_name else self._get_kb_name(request.kb_id)
@@ -120,17 +124,24 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
 
             start_time = time.time()
 
-            kb_svc = KBServiceFactory.get_service(
-                kb_name=kb_name, vs_type=self.config.vector_store.type, persist_dir=str(self.persist_dir))
-
-            hybrid = HybridRetriever(
-                kb_service=kb_svc, embedding_client=self.embedding_client,
-                bm25_weight=bm25_weight, vector_weight=vector_weight, rrf_k=rrf_k)
+            # Use cached retriever for default weights, create new for custom
+            is_custom = (bm25_weight != self.config.retriever.bm25_weight or
+                         vector_weight != self.config.retriever.vector_weight or
+                         rrf_k != self.config.retriever.rrf_k)
+            if is_custom:
+                kb_svc = KBServiceFactory.get_service(
+                    kb_name=kb_name, vs_type=self.config.vector_store.type, persist_dir=str(self.persist_dir))
+                hybrid = HybridRetriever(
+                    kb_service=kb_svc, embedding_client=self.embedding_client,
+                    bm25_weight=bm25_weight, vector_weight=vector_weight, rrf_k=rrf_k)
+            else:
+                hybrid = self._get_hybrid_retriever(kb_name)
 
             fetch_k = top_k * 2
             fused_results = await asyncio.to_thread(
                 hybrid.retrieve, query=query, top_k=fetch_k, score_threshold=score_threshold)
 
+            # 可选：重排序
             reranked_count = 0
             if request.use_reranker:
                 reranker_model = request.reranker_model or self.config.reranker.model_name
@@ -158,6 +169,7 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
             return search_pb2.HybridSearchResponse()
 
     async def Rerank(self, request, context):
+        """ 重排 """
         try:
             query = request.query
             top_n = request.top_n or self.config.reranker.top_n
