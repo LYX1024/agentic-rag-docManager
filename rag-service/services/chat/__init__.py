@@ -28,6 +28,7 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
         self._embedding_client: EmbeddingClient | None = None
         self._retrievers: dict[str, HybridRetriever] = {}
         self._llm_client: LLMClient | None = None
+        # 加载历史(java侧)
         self._history = ChatHistoryManager(
             java_backend_url=config.java_backend_url,
             llm_api_base=config.llm.api_base,
@@ -83,6 +84,7 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
             logger.info(f"RagChat: session={session_id}, query='{query[:60]}...'")
 
             # Get or create retriever
+            # 单例模式：每个知识库拥有一个检索器
             kb_svc = KBServiceFactory.get_service(
                 kb_name=kb_name, vs_type=self.config.vector_store.type,
                 persist_dir=str(self.persist_dir))
@@ -98,6 +100,7 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
             message_id = str(uuid.uuid4())
             full_response = ""
             source_docs = []
+            # 三种事件：thinking, sources, answer
             async for event_type, data in agentic_rag_stream(
                     query=query, retriever=retriever,
                     llm_client=self.llm_client, llm_model=llm_model,
