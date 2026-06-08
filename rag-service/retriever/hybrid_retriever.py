@@ -55,6 +55,7 @@ class HybridRetriever:
 
         Returns:
             List of dicts: [{id, text, score, metadata}, ...] sorted by score desc.
+        更多的召回 -> rrf融合 -> 排序返回结果
         """
         # Get 2x results from each retriever for better recall
         fetch_k = top_k * 2
@@ -104,6 +105,10 @@ class HybridRetriever:
 
         Returns:
             Fused list of dicts with RRF scores.
+
+        不关心原两个策略的分数，只关心其各自的排名
+        weight_i：权重 k：阻尼参数 rank_i：排名 +1：常数
+        score(d) = Σ weight_i / (k + rank_i + 1)
         """
         fused_map: dict[str, dict] = {}
 
