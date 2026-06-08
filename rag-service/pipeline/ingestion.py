@@ -21,6 +21,20 @@ class IngestionResult:
         self.error_msg = error_msg
 
 
+_CODE_LANG_MAP = {
+    ".py": "python",
+    ".java": "java",
+    ".js": "js",
+    ".ts": "js",
+    ".html": "html",
+    ".htm": "html",
+}
+
+
+def _get_code_language(file_ext: str) -> Optional[str]:
+    return _CODE_LANG_MAP.get(file_ext.lower())
+
+
 async def ingest_document(
     minio_key: str,
     kb_name: str,
@@ -88,12 +102,21 @@ async def ingest_document(
             raise ValueError("Document loaded but produced no content")
         logger.info(f"[{kb_name}] Loaded {len(documents)} document(s) from {file_name}")
 
-        # Step 3: Split into chunks
-        splitter = ChineseRecursiveTextSplitter(
-            chunk_size=config.text_splitter.chunk_size,
-            chunk_overlap=config.text_splitter.chunk_overlap,
-            separators=config.text_splitter.separators,
-        )
+        # Step 3: Split into chunks (language-aware for code files)
+        lang = _get_code_language(file_ext)
+        if lang:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
+            splitter = RecursiveCharacterTextSplitter.from_language(
+                language=lang,
+                chunk_size=config.text_splitter.chunk_size,
+                chunk_overlap=config.text_splitter.chunk_overlap,
+            )
+        else:
+            splitter = ChineseRecursiveTextSplitter(
+                chunk_size=config.text_splitter.chunk_size,
+                chunk_overlap=config.text_splitter.chunk_overlap,
+                separators=config.text_splitter.separators,
+            )
         chunks = splitter.split_documents(documents)
         logger.info(f"[{kb_name}] Split into {len(chunks)} chunks")
 

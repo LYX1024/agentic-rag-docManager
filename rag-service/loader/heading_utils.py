@@ -20,6 +20,7 @@ def split_markdown_by_headings(content: str) -> list[dict]:
         line = lines[i].strip()
 
         # Detect heading level
+        # 根据#符分段
         level = 0
         heading_text = ""
         if line.startswith('# ') and not line.startswith('## '):
@@ -48,6 +49,7 @@ def split_markdown_by_headings(content: str) -> list[dict]:
                     })
 
             # Update heading stack
+            # 遇到新标题，弹出大于等于当前级别的标题(此处数字较大的标题实际对应文档中较小的标题)
             while heading_stack and heading_stack[-1][0] >= level:
                 heading_stack.pop()
             heading_stack.append((level, heading_text))
@@ -78,6 +80,7 @@ def split_markdown_by_headings(content: str) -> list[dict]:
 
 def split_docx_by_headings(paragraphs: list[tuple[int, str]]) -> list[dict]:
     """Split DOCX paragraphs into sections based on Heading styles.
+    根据word格式的heading样式分段
 
     Args:
         paragraphs: List of (level, text) tuples where level 1-3 is a heading,
