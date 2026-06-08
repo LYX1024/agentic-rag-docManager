@@ -29,6 +29,7 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
         self._retrievers: dict[str, HybridRetriever] = {}
         self._llm_client: LLMClient | None = None
         self._history = ChatHistoryManager(
+            java_backend_url=config.java_backend_url,
             llm_api_base=config.llm.api_base,
             llm_api_key=config.llm.api_key,
             llm_model=config.llm.model,

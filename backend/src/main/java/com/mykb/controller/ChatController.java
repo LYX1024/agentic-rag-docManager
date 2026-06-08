@@ -73,9 +73,22 @@ public class ChatController {
     }
 
     @GetMapping("/session/{id}/history")
-    public ApiResponse<List<ChatMessage>> getHistory(@PathVariable Long id) {
+    public ApiResponse<List<ChatMessage>> getHistory(@PathVariable Long id,
+                                                      @RequestParam(defaultValue = "false") boolean includeSystem) {
         List<ChatMessage> messages = chatService.getHistory(id);
+        if (!includeSystem) {
+            messages = messages.stream().filter(m -> !"system".equals(m.getRole())).collect(Collectors.toList());
+        }
         return ApiResponse.success(messages);
+    }
+
+    @PostMapping("/session/{id}/message")
+    public ApiResponse<Void> saveMessage(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        String role = (String) body.get("role");
+        String content = (String) body.get("content");
+        String sources = (String) body.getOrDefault("sources", null);
+        chatService.saveMessage(id, role, content, sources);
+        return ApiResponse.success();
     }
 
     @DeleteMapping("/session/{id}")
