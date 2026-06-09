@@ -6,7 +6,7 @@
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <span class="font-light text-xs px-2 py-0.5 bg-[#c9a88c]/30 text-[#3d3d3d]">
-          {{ result.fileSource }}
+          {{ result.fileName }}
         </span>
         <span class="font-light text-xs text-gray-400">块 #{{ result.chunkIndex }}</span>
       </div>

@@ -113,11 +113,14 @@ class BM25Retriever:
 
         Returns:
             List of dicts: [{id, text, score, metadata}, ...] sorted by score descending.
-        
+
         查询分词 -> 计算全文档bm25分数 -> 排序并返回top_k结果
         """
         if not self._corpus:
-            return []
+            # Auto-rebuild if corpus is empty — kb_service may have been reloaded
+            self._rebuild_index()
+            if not self._corpus:
+                return []
 
         query_tokens = jieba.lcut_for_search(query)
         if not query_tokens:

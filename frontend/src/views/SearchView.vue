@@ -158,9 +158,9 @@ async function executeSearch() {
       })
     }
 
-    results.value = res.data.results
-    total.value = res.data.total
-    timeCost.value = res.data.timeCost
+    results.value = res.results
+    total.value = res.total
+    timeCost.value = res.timeCost
   } catch {
     Toast.error('搜索失败，请稍后重试')
     results.value = []

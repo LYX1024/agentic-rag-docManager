@@ -20,12 +20,11 @@ export interface HybridSearchParams {
 }
 
 export interface SearchResultItem {
-  id: string
+  chunkId: string
   text: string
   score: number
-  fileSource: string
+  fileName: string
   chunkIndex: number
-  metadata?: Record<string, any>
 }
 
 export interface SearchResult {

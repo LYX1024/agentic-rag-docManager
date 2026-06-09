@@ -63,6 +63,21 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
             vs_doc_id=item.get("id", ""),
         )
 
+    def _create_hybrid_retriever(self, kb_name: str) -> HybridRetriever:
+        """Create a fresh hybrid retriever. BM25 is cached separately."""
+        kb_svc = KBServiceFactory.get_service(
+            kb_name=kb_name,
+            vs_type=self.config.vector_store.type,
+            persist_dir=str(self.persist_dir),
+        )
+        return HybridRetriever(
+            kb_service=kb_svc,
+            embedding_client=self.embedding_client,
+            bm25_weight=self.config.retriever.bm25_weight,
+            vector_weight=self.config.retriever.vector_weight,
+            rrf_k=self.config.retriever.rrf_k,
+        )
+
     async def Search(self, request, context):
         """ 单一检索：Vector(语义向量)检索或BM25(关键词)检索 """
         try:
@@ -128,18 +143,21 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
             is_custom = (bm25_weight != self.config.retriever.bm25_weight or
                          vector_weight != self.config.retriever.vector_weight or
                          rrf_k != self.config.retriever.rrf_k)
-            if is_custom:
-                kb_svc = KBServiceFactory.get_service(
-                    kb_name=kb_name, vs_type=self.config.vector_store.type, persist_dir=str(self.persist_dir))
-                hybrid = HybridRetriever(
-                    kb_service=kb_svc, embedding_client=self.embedding_client,
-                    bm25_weight=bm25_weight, vector_weight=vector_weight, rrf_k=rrf_k)
-            else:
-                hybrid = self._get_hybrid_retriever(kb_name)
+            # Create fresh retriever each time — kb_service loads from disk
+            kb_svc = KBServiceFactory.get_service(
+                kb_name=kb_name, vs_type=self.config.vector_store.type, persist_dir=str(self.persist_dir))
+            hybrid = HybridRetriever(
+                kb_service=kb_svc, embedding_client=self.embedding_client,
+                bm25_weight=bm25_weight, vector_weight=vector_weight, rrf_k=rrf_k)
 
             fetch_k = top_k * 2
+            # RRF score is inherently small (~0.01), use 0.0 threshold
             fused_results = await hybrid.retrieve(
-                query=query, top_k=fetch_k, score_threshold=score_threshold)
+                query=query, top_k=fetch_k, score_threshold=0.0)
+
+            # Apply user-requested score threshold post-fusion if > 0
+            if score_threshold > 0:
+                fused_results = [r for r in fused_results if r["score"] >= score_threshold]
 
             # 可选：重排序
             reranked_count = 0
