@@ -1,4 +1,5 @@
 """Hybrid retriever combining BM25 + Vector search via Reciprocal Rank Fusion (RRF)."""
+import asyncio
 from loguru import logger
 from .bm25_retriever import BM25Retriever
 from .vector_retriever import VectorRetriever
@@ -40,44 +41,36 @@ class HybridRetriever:
         self.vector_weight = vector_weight
         self.rrf_k = rrf_k
 
-    def retrieve(
+    async def retrieve(
         self,
         query: str,
         top_k: int = 5,
         score_threshold: float = 0.0,
     ) -> list:
-        """Retrieve and fuse results from both BM25 and vector search.
+        """Async retrieve and fuse BM25 (CPU) + vector (async) search via RRF.
 
-        Args:
-            query: The search query string.
-            top_k: Number of final results to return.
-            score_threshold: Minimum RRF score threshold.
-
-        Returns:
-            List of dicts: [{id, text, score, metadata}, ...] sorted by score desc.
-        更多的召回 -> rrf融合 -> 排序返回结果
+        BM25 runs in to_thread (CPU-bound jieba tokenization).
+        Vector search awaits async embedding call.
         """
-        # Get 2x results from each retriever for better recall
         fetch_k = top_k * 2
 
-        bm25_results = self.bm25.search(query, top_k=fetch_k)
-        vector_results = self.vector.search(query, top_k=fetch_k, score_threshold=0.0)
+        # BM25: CPU-bound, run in thread pool
+        bm25_results = await asyncio.to_thread(self.bm25.search, query, top_k=fetch_k)
+        # Vector: async embed + FAISS search
+        vector_results = await self.vector.search(query, top_k=fetch_k, score_threshold=0.0)
 
         logger.debug(
             f"Hybrid pre-fusion: BM25={len(bm25_results)}, Vector={len(vector_results)}"
         )
 
-        # Fuse via RRF
         fused = self._rrf_fusion(
             bm25_results, vector_results,
             weight_a=self.bm25_weight, weight_b=self.vector_weight
         )
 
-        # Filter by threshold
         if score_threshold > 0:
             fused = [r for r in fused if r["score"] >= score_threshold]
 
-        # Sort by fused score descending and take top_k
         fused.sort(key=lambda x: x["score"], reverse=True)
         fused = fused[:top_k]
 

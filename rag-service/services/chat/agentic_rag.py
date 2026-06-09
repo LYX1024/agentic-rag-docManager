@@ -2,7 +2,6 @@
 Agentic RAG with OpenAI function calling schema.
 LLM decides: search / rewrite / answer via native tool_calls.
 """
-import asyncio
 import json
 from loguru import logger
 
@@ -11,6 +10,7 @@ from services.chat.context_builder import build_context_and_sources
 
 MAX_ROUNDS = 5
 
+# 工具：搜索和重写搜索请求  由llm自主调用，实现agenticRAG
 TOOLS = [
     {
         "type": "function",
@@ -30,7 +30,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "rewrite",
-            "description": "Rewrite a vague or broad question into 2-3 precise search queries. Only use when a direct search returned poor results.",
+            "description": "Rewrite a broad question into 2-3 search queries covering different dimensions (categories, types, platforms). Do NOT assume specific product names.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -60,6 +60,7 @@ async def agentic_rag_stream(
         {"role": "user", "content": query},
     ]
 
+    # agent循环最大5轮
     for round_num in range(1, MAX_ROUNDS + 1):
         logger.info(f"Agent round {round_num}/{MAX_ROUNDS}")
 
@@ -90,8 +91,8 @@ async def agentic_rag_stream(
                 if name == "search":
                     search_query = args["query"]
                     yield ("thinking", f"Searching: {search_query}")
-                    results = await asyncio.to_thread(
-                        retriever.retrieve, query=search_query, top_k=5, score_threshold=0.0)
+                    results = await retriever.retrieve(
+                        query=search_query, top_k=5, score_threshold=0.0)
                     if results:
                         context, sources = build_context_and_sources(results)
                         all_sources.extend(sources)
@@ -125,9 +126,19 @@ async def agentic_rag_stream(
 
 async def _rewrite_and_search(query: str, retriever, llm_client: LLMClient, llm_model: str):
     """LLM decomposes query into sub-queries, search each, merge deduped results."""
+
+    prompt = (
+        f"Break this question into 2-3 search queries covering different dimensions "
+        f"(e.g. categories, types, technical approaches, platforms). "
+        f"Do NOT assume specific product names unless mentioned in the question. "
+        f"Output one query per line:\n\n"
+        f"Question: {query}\n\n"
+        f"Queries:"
+    )
+
     resp = await llm_client.create_with_tools(
         model=llm_model,
-        messages=[{"role": "user", "content": f"Break this into 2-3 precise search queries. Output one per line:\n\n{query}"}],
+        messages=[{"role": "user", "content": prompt}],
         tools=[], temperature=0.3)
     text = resp.choices[0].message.content or ""
 
@@ -135,13 +146,13 @@ async def _rewrite_and_search(query: str, retriever, llm_client: LLMClient, llm_
                    if line.strip() and len(line.strip()) > 3]
     sub_queries = sub_queries[:3]
     if not sub_queries:
-        results = await asyncio.to_thread(retriever.retrieve, query=query, top_k=5, score_threshold=0.0)
+        results = await retriever.retrieve(query=query, top_k=5, score_threshold=0.0)
         return results, build_context_and_sources(results)
 
     logger.info(f"Rewrite: '{query[:50]}...' → {sub_queries}")
     all_retrieved, seen = [], set()
     for sq in sub_queries:
-        for r in await asyncio.to_thread(retriever.retrieve, query=sq, top_k=3, score_threshold=0.0):
+        for r in await retriever.retrieve(query=sq, top_k=3, score_threshold=0.0):
             if r["id"] not in seen:
                 seen.add(r["id"])
                 all_retrieved.append(r)

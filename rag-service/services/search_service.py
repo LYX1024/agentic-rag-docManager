@@ -138,8 +138,8 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
                 hybrid = self._get_hybrid_retriever(kb_name)
 
             fetch_k = top_k * 2
-            fused_results = await asyncio.to_thread(
-                hybrid.retrieve, query=query, top_k=fetch_k, score_threshold=score_threshold)
+            fused_results = await hybrid.retrieve(
+                query=query, top_k=fetch_k, score_threshold=score_threshold)
 
             # 可选：重排序
             reranked_count = 0

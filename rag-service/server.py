@@ -24,7 +24,7 @@ async def serve():
     from services.kb_management_service import KBManagementServicer
     from services.document_service import DocumentServicer
     from services.search_service import SearchServicer
-    from services.chat_service import ChatServicer
+    from services.chat import ChatServicer
 
     server = grpc.aio.server(
         options=[
