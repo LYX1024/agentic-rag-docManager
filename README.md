@@ -134,3 +134,9 @@ docker compose up -d --build
 ├── docs/                # 文档
 └── docker/              # Dockerfile + 配置
 ```
+## TODO
+-多模态嵌入(目前支持多文档与图片OCR文字内容，计划支持公式、表格、图片语义)
+-文档内嵌非文字内容单独解析
+-Java侧文档管理系统支持修改(目前已有分块哈希，修改无需全文重新embed)
+-切块策略升级(语义切块，父子切块)
+-更换embedding模型，向量数据库选型，BM25该用ElasticSearch，引入专门MQ(由于经济、机器性能等原因，这方面较紧张)
