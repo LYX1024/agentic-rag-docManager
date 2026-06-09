@@ -40,6 +40,8 @@ class Reranker:
         Returns:
             Re-ranked list of dicts sorted by rerank_score descending.
             Each dict has the original fields plus 'rerank_score'.
+        Cross Encoder：将Query + 检索结果送入模型进行打分
+        慢但准，精排
         """
         if not candidates:
             return []

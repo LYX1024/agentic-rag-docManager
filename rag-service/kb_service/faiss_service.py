@@ -32,16 +32,37 @@ class FAISSService(KBService):
         return str(self._docstore_file)
 
     def do_init_index(self, dimension: int):
+        """ 
+        IndexFlatIP内积索引 -> 即余弦相似度
+        进行归一化处理后，分数处理[-1, 1]
+
+        索引类型选择
+        IndexFlatIP：内积索引（当前使用）
+        优点：配合归一化等价于余弦相似度
+        缺点：暴力搜索，大数据量慢
+
+        IndexFlatL2：欧氏距离索引
+        优点：不需要归一化
+        缺点：距离受向量模长影响
+
+        IndexIVFFlat：倒排索引（加速搜索）
+        优点：搜索更快
+        缺点：需要训练，精度略低
+        """
         self._dimension = dimension
         self.index = faiss.IndexFlatIP(dimension)  # Inner Product, use with normalized vectors
         self.docstore = {}
 
     def add_documents(self, texts: list, embeddings: list, metadatas: Optional[list] = None) -> list:
+        """ 
+        texts + embeddings + metadatas → FAISS + JSON docstore
+        FAISS向量存储 + json持久化(原始文本块 + 向量数据块 + 元数据)
+        """
         if not texts:
             return []
 
         embeddings = np.array(embeddings, dtype=np.float32)
-        faiss.normalize_L2(embeddings)
+        faiss.normalize_L2(embeddings)  # L2归一化
 
         if self.index is None:
             self.do_init_index(embeddings.shape[1])
@@ -63,6 +84,9 @@ class FAISSService(KBService):
         return doc_ids
 
     def search(self, query_embedding: list, top_k: int = 5, score_threshold: float = 0.0) -> list:
+        """
+        查询向量预处理 -> FAISS向量检索 -> 元数据回填
+        """
         if self.index is None or self.index.ntotal == 0:
             return []
 

@@ -1,57 +1,72 @@
 <template>
   <AppLayout>
-    <div class="search-page">
-      <div class="search-header">
-        <el-button :icon="ArrowLeft" @click="goBack">返回</el-button>
-        <h1>知识库检索</h1>
+    <div class="px-6 md:px-12 py-8 max-w-[900px] mx-auto">
+      <!-- Header -->
+      <div class="flex items-center gap-4 mb-6">
+        <AppButton variant="secondary" size="sm" @click="goBack">
+          ← 返回
+        </AppButton>
+        <h1 class="font-light tracking-wide text-2xl">知识库检索</h1>
       </div>
 
-      <div class="search-panel">
+      <!-- Search Panel -->
+      <div class="mb-4">
         <SearchBar
-          v-model:query="query"
-          v-model:search-mode="searchMode"
+          :query="query"
+          :search-mode="searchMode"
           :loading="searching"
+          @update:query="query = $event"
+          @update:search-mode="searchMode = $event"
           @search="executeSearch"
         />
       </div>
 
-      <div class="search-options">
-        <div class="option-item">
-          <span class="option-label">相似度阈值: {{ scoreThreshold.toFixed(2) }}</span>
-          <el-slider
-            v-model="scoreThreshold"
-            :min="0"
-            :max="1"
-            :step="0.05"
-            style="width: 200px"
-            :show-tooltip="false"
+      <!-- Search Options -->
+      <div class="flex items-center gap-8 p-3 bg-white border border-[#d4cdc5]/40 mb-5">
+        <div class="flex items-center gap-3">
+          <span class="font-light text-xs text-[#3d3d3d] whitespace-nowrap">
+            相似度阈值: {{ scoreThreshold.toFixed(2) }}
+          </span>
+          <input
+            v-model.number="scoreThreshold"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            class="w-[150px] accent-[#5a7a6b]"
           />
         </div>
-        <div class="option-item">
-          <span class="option-label">返回条数</span>
-          <el-select v-model="topK" style="width: 100px">
-            <el-option :value="5" label="5" />
-            <el-option :value="10" label="10" />
-            <el-option :value="20" label="20" />
-            <el-option :value="50" label="50" />
-          </el-select>
+        <div class="flex items-center gap-3">
+          <span class="font-light text-xs text-[#3d3d3d] whitespace-nowrap">返回条数</span>
+          <select
+            v-model.number="topK"
+            class="bg-white border border-[#d4cdc5]/40 px-2 py-1 font-light text-xs focus:outline-none"
+          >
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+          </select>
         </div>
       </div>
 
-      <div v-if="searching" class="loading-area">
-        <el-skeleton :rows="4" animated />
+      <!-- Loading -->
+      <div v-if="searching" class="p-5 bg-white border border-[#d4cdc5]/40">
+        <p class="font-light text-sm text-gray-500">搜索中...</p>
       </div>
 
-      <div v-else-if="searchPerformed && results.length === 0" class="empty-area">
-        <el-empty description="未找到相关结果" />
+      <!-- Empty -->
+      <div v-else-if="searchPerformed && results.length === 0" class="flex flex-col items-center justify-center py-20">
+        <p class="font-light tracking-wide text-lg text-gray-500">未找到相关结果</p>
       </div>
 
-      <div v-else-if="results.length > 0" class="results-area">
-        <div class="results-info">
-          <span>找到 {{ total }} 条结果</span>
-          <el-tag v-if="timeCost !== undefined" size="small" type="info">
+      <!-- Results -->
+      <div v-else-if="results.length > 0">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="font-light text-xs text-gray-500">找到 {{ total }} 条结果</span>
+          <span v-if="timeCost !== undefined" class="font-light text-xs px-2 py-0.5 border border-[#d4cdc5]/40 bg-white">
             耗时 {{ timeCost }}ms
-          </el-tag>
+          </span>
         </div>
         <SearchResult
           v-for="(result, idx) in results"
@@ -67,9 +82,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { Toast } from '@/utils/toast'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import SearchBar from '@/components/search/SearchBar.vue'
 import SearchResult from '@/components/search/SearchResult.vue'
 import * as searchApi from '@/api/search'
@@ -106,7 +121,7 @@ function goBack() {
 
 async function executeSearch() {
   if (!query.value.trim()) {
-    ElMessage.warning('请输入搜索内容')
+    Toast.warning('请输入搜索内容')
     return
   }
 
@@ -143,11 +158,11 @@ async function executeSearch() {
       })
     }
 
-    results.value = res.data.results
-    total.value = res.data.total
-    timeCost.value = res.data.timeCost
+    results.value = res.results
+    total.value = res.total
+    timeCost.value = res.timeCost
   } catch {
-    ElMessage.error('搜索失败，请稍后重试')
+    Toast.error('搜索失败，请稍后重试')
     results.value = []
     total.value = 0
   } finally {
@@ -155,72 +170,3 @@ async function executeSearch() {
   }
 }
 </script>
-
-<style scoped lang="scss">
-.search-page {
-  max-width: 900px;
-  margin: 0 auto;
-
-  .search-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 24px;
-
-    h1 {
-      font-size: 22px;
-      font-weight: 600;
-      color: #303133;
-      margin: 0;
-    }
-  }
-
-  .search-panel {
-    margin-bottom: 16px;
-  }
-
-  .search-options {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 12px 16px;
-    background: #fff;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border: 1px solid #ebeef5;
-
-    .option-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .option-label {
-        font-size: 13px;
-        color: #606266;
-        white-space: nowrap;
-      }
-    }
-  }
-
-  .loading-area {
-    padding: 20px;
-    background: #fff;
-    border-radius: 8px;
-  }
-
-  .empty-area {
-    margin-top: 40px;
-  }
-
-  .results-area {
-    .results-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-size: 13px;
-      color: #909399;
-    }
-  }
-}
-</style>

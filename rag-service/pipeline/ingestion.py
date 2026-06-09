@@ -21,7 +21,21 @@ class IngestionResult:
         self.error_msg = error_msg
 
 
-def ingest_document(
+_CODE_LANG_MAP = {
+    ".py": "python",
+    ".java": "java",
+    ".js": "js",
+    ".ts": "js",
+    ".html": "html",
+    ".htm": "html",
+}
+
+
+def _get_code_language(file_ext: str) -> Optional[str]:
+    return _CODE_LANG_MAP.get(file_ext.lower())
+
+
+async def ingest_document(
     minio_key: str,
     kb_name: str,
     file_name: str,
@@ -78,7 +92,7 @@ def ingest_document(
         minio_client.download_file(minio_key, str(local_path))
         logger.info(f"[{kb_name}] Downloaded: {minio_key} -> {local_path}")
 
-        # Step 2: Load document
+        # Step 2: Load document 工厂模式根据扩展名获取加载器，参考loader文件夹
         loader = LOADER_DICT.get(file_ext.lower())
         if loader is None:
             raise ValueError(f"Unsupported file type: {file_ext}")
@@ -88,12 +102,21 @@ def ingest_document(
             raise ValueError("Document loaded but produced no content")
         logger.info(f"[{kb_name}] Loaded {len(documents)} document(s) from {file_name}")
 
-        # Step 3: Split into chunks
-        splitter = ChineseRecursiveTextSplitter(
-            chunk_size=config.text_splitter.chunk_size,
-            chunk_overlap=config.text_splitter.chunk_overlap,
-            separators=config.text_splitter.separators,
-        )
+        # Step 3: Split into chunks (language-aware for code files)
+        lang = _get_code_language(file_ext)
+        if lang:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter, Language
+            splitter = RecursiveCharacterTextSplitter.from_language(
+                language=lang,
+                chunk_size=config.text_splitter.chunk_size,
+                chunk_overlap=config.text_splitter.chunk_overlap,
+            )
+        else:
+            splitter = ChineseRecursiveTextSplitter(
+                chunk_size=config.text_splitter.chunk_size,
+                chunk_overlap=config.text_splitter.chunk_overlap,
+                separators=config.text_splitter.separators,
+            )
         chunks = splitter.split_documents(documents)
         logger.info(f"[{kb_name}] Split into {len(chunks)} chunks")
 
@@ -107,6 +130,7 @@ def ingest_document(
         for i, chunk in enumerate(chunks):
             text = chunk.page_content if hasattr(chunk, "page_content") else str(chunk)
             texts.append(text)
+            # 计算内容哈希
             chunk_hash = hashlib.sha256(text.encode()).hexdigest()
             metadatas.append({
                 "source_file": file_name,
@@ -118,7 +142,7 @@ def ingest_document(
             })
 
         # Step 6: Embed
-        embeddings = embedding_client.embed_documents(texts)
+        embeddings = await embedding_client.embed_documents(texts)
         logger.info(f"[{kb_name}] Embedded {len(embeddings)} chunks, dim={len(embeddings[0]) if embeddings else 0}")
 
         # Step 7: Store in FAISS

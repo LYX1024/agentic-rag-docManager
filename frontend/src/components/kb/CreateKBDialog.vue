@@ -1,66 +1,94 @@
 <template>
-  <el-dialog
-    v-model="dialogVisible"
+  <AppDialog
+    :model-value="visible"
     title="创建知识库"
     width="520px"
-    :close-on-click-modal="false"
-    @close="handleClose"
+    @update:model-value="$emit('update:visible', $event)"
   >
-    <el-form
-      ref="formRef"
-      :model="form"
-      :rules="rules"
-      label-width="100px"
-      label-position="right"
-    >
-      <el-form-item label="知识库名称" prop="name">
-        <el-input v-model="form.name" placeholder="请输入知识库名称" maxlength="50" show-word-limit />
-      </el-form-item>
-      <el-form-item label="描述" prop="description">
-        <el-input
+    <div class="flex flex-col gap-4">
+      <!-- Name -->
+      <div>
+        <label class="block font-light text-sm mb-1">知识库名称 *</label>
+        <AppInput
+          v-model="form.name"
+          placeholder="请输入知识库名称"
+        />
+        <p v-if="errors.name" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.name }}</p>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block font-light text-sm mb-1">描述</label>
+        <textarea
           v-model="form.description"
-          type="textarea"
-          :rows="3"
           placeholder="请输入知识库描述（选填）"
           maxlength="200"
-          show-word-limit
+          rows="3"
+          class="bg-transparent focus:outline-none border-b-2 border-[#3d3d3d] px-3 py-2 w-full font-light resize-none placeholder:text-gray-400 text-sm"
         />
-      </el-form-item>
-      <el-form-item label="向量库类型" prop="vsType">
-        <el-select v-model="form.vsType" placeholder="请选择向量库类型" style="width: 100%">
-          <el-option label="FAISS" value="FAISS" />
-          <el-option label="Chroma" value="CHROMA" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="嵌入模型" prop="embedModel">
-        <el-select v-model="form.embedModel" placeholder="请选择嵌入模型" style="width: 100%">
-          <el-option label="bge-m3" value="bge-m3" />
-          <el-option label="bge-large" value="bge-large" />
-          <el-option label="text-embedding-3-small" value="text-embedding-3-small" />
-        </el-select>
-      </el-form-item>
-    </el-form>
+        <p class="font-light text-xs text-gray-400 mt-1">{{ form.description?.length ?? 0 }}/200</p>
+      </div>
+
+      <!-- VS Type -->
+      <div>
+        <label class="block font-light text-sm mb-1">向量库类型 *</label>
+        <AppSelect
+          v-model="form.vsType"
+          :options="vsTypeOptions"
+          placeholder="请选择向量库类型"
+        />
+        <p v-if="errors.vsType" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.vsType }}</p>
+      </div>
+
+      <!-- Embed Model -->
+      <div>
+        <label class="block font-light text-sm mb-1">嵌入模型 *</label>
+        <AppSelect
+          v-model="form.embedModel"
+          :options="embedModelOptions"
+          placeholder="请选择嵌入模型"
+        />
+        <p v-if="errors.embedModel" class="font-light text-xs text-[#5a7a6b] mt-1">{{ errors.embedModel }}</p>
+      </div>
+    </div>
+
     <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleConfirm" :loading="loading">创建</el-button>
-      </span>
+      <AppButton variant="secondary" @click="handleCancel">取消</AppButton>
+      <AppButton variant="primary" @click="handleConfirm" :disabled="loading">
+        {{ loading ? '创建中...' : '创建' }}
+      </AppButton>
     </template>
-  </el-dialog>
+  </AppDialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import { reactive, ref, watch } from 'vue'
 import type { CreateKBParams } from '@/api/knowledgeBase'
+import AppDialog from '@/components/ui/AppDialog.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+
+const props = defineProps<{
+  visible: boolean
+}>()
 
 const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
   (e: 'confirm', data: CreateKBParams): void
 }>()
 
-const dialogVisible = defineModel<boolean>('visible', { required: true })
-const formRef = ref<FormInstance>()
 const loading = ref(false)
+
+const vsTypeOptions = [
+  { label: 'FAISS', value: 'FAISS' },
+  { label: 'Chroma', value: 'CHROMA' }
+]
+
+const embedModelOptions = [
+  { label: 'bge-m3', value: 'bge-m3' },
+  { label: 'text-embedding-3-small', value: 'text-embedding-3-small' }
+]
 
 const form = reactive<CreateKBParams>({
   name: '',
@@ -69,43 +97,49 @@ const form = reactive<CreateKBParams>({
   embedModel: 'bge-m3'
 })
 
-const rules: FormRules = {
-  name: [
-    { required: true, message: '请输入知识库名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '名称长度在 1 到 50 个字符之间', trigger: 'blur' }
-  ],
-  vsType: [
-    { required: true, message: '请选择向量库类型', trigger: 'change' }
-  ],
-  embedModel: [
-    { required: true, message: '请选择嵌入模型', trigger: 'change' }
-  ]
-}
+const errors = reactive<Record<string, string>>({})
 
-async function handleConfirm() {
-  if (!formRef.value) return
-  try {
-    await formRef.value.validate()
-    emit('confirm', { ...form })
-  } catch {
-    // validation failed
+function validate(): boolean {
+  errors.name = ''
+  errors.vsType = ''
+  errors.embedModel = ''
+
+  if (!form.name.trim()) {
+    errors.name = '请输入知识库名称'
+  } else if (form.name.length > 50) {
+    errors.name = '名称长度不能超过 50 个字符'
   }
+  if (!form.vsType) {
+    errors.vsType = '请选择向量库类型'
+  }
+  if (!form.embedModel) {
+    errors.embedModel = '请选择嵌入模型'
+  }
+  return !errors.name && !errors.vsType && !errors.embedModel
 }
 
-function handleClose() {
-  formRef.value?.resetFields()
+function resetForm() {
   form.name = ''
   form.description = ''
   form.vsType = 'FAISS'
   form.embedModel = 'bge-m3'
-  dialogVisible.value = false
+  errors.name = ''
+  errors.vsType = ''
+  errors.embedModel = ''
+}
+
+watch(() => props.visible, (val) => {
+  if (!val) {
+    resetForm()
+  }
+})
+
+function handleCancel() {
+  emit('update:visible', false)
+}
+
+function handleConfirm() {
+  if (!validate()) return
+  emit('confirm', { ...form })
 }
 </script>
-
-<style scoped lang="scss">
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-</style>

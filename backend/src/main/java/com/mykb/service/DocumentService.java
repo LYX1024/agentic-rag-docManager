@@ -3,17 +3,17 @@ package com.mykb.service;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mykb.entity.KnowledgeFile;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.DocumentClient;
-import com.mykb.mapper.FileChunkMapper;
 import com.mykb.mapper.KnowledgeFileMapper;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -30,18 +33,21 @@ public class DocumentService {
 
     private final MinioClient minioClient;
     private final KnowledgeFileMapper fileMapper;
-    private final FileChunkMapper chunkMapper;
     private final DocumentClient documentClient;
     private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+    private final KBService kbService;
 
     public DocumentService(MinioClient minioClient, KnowledgeFileMapper fileMapper,
-                           FileChunkMapper chunkMapper, DocumentClient documentClient,
-                           org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+                           DocumentClient documentClient,
+                           org.springframework.data.redis.core.StringRedisTemplate redisTemplate,
+                           ObjectMapper objectMapper, KBService kbService) {
         this.minioClient = minioClient;
         this.fileMapper = fileMapper;
-        this.chunkMapper = chunkMapper;
         this.documentClient = documentClient;
         this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+        this.kbService = kbService;
     }
 
     @Value("${minio.bucket}")
@@ -101,19 +107,84 @@ public class DocumentService {
             log.error("Failed to submit ingestion: fileId={}, error={}", kf.getId(), e.getMessage(), e);
         }
 
+        // Evict caches
+        evictDocumentListAndCategories(kbId);
+        kbService.evictFileCountCache(kbId);
+
         return kf;
     }
 
     public IPage<KnowledgeFile> listDocuments(Long kbId, String category, int pageNum, int pageSize) {
+        String categoryOrDefault = (category != null && !category.isBlank()) ? category : "all";
+        String cacheKey = "doc:list:" + kbId + ":" + categoryOrDefault;
+
+        // Try cache first
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                JsonNode node = objectMapper.readTree(cached);
+                List<KnowledgeFile> records = objectMapper.readValue(
+                        node.get("records").traverse(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, KnowledgeFile.class));
+                long total = node.get("total").asLong();
+                Page<KnowledgeFile> page = new Page<>(pageNum, pageSize, total);
+                page.setRecords(records);
+                log.info("Cache hit: {}", cacheKey);
+                return page;
+            }
+        } catch (Exception e) {
+            log.warn("Cache read failed for listDocuments: {}", e.getMessage());
+        }
+
+        // Query MySQL
         Page<KnowledgeFile> page = new Page<>(pageNum, pageSize);
         if (category != null && !category.isBlank()) {
-            return fileMapper.selectPageByKbIdAndCategory(page, kbId, category);
+            IPage<KnowledgeFile> result = fileMapper.selectPageByKbIdAndCategory(page, kbId, category);
+            cacheDocumentsList(cacheKey, result);
+            return result;
         }
-        return fileMapper.selectPageByKbId(page, kbId);
+        IPage<KnowledgeFile> result = fileMapper.selectPageByKbId(page, kbId);
+        cacheDocumentsList(cacheKey, result);
+        return result;
+    }
+
+    private void cacheDocumentsList(String cacheKey, IPage<KnowledgeFile> result) {
+        try {
+            Map<String, Object> cacheValue = new HashMap<>();
+            cacheValue.put("records", result.getRecords());
+            cacheValue.put("total", result.getTotal());
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(cacheValue), Duration.ofMinutes(3));
+        } catch (Exception e) {
+            log.warn("Cache write failed for listDocuments: {}", e.getMessage());
+        }
     }
 
     public List<String> getCategories(Long kbId) {
-        return fileMapper.selectDistinctCategoriesByKbId(kbId);
+        String cacheKey = "doc:categories:" + kbId;
+
+        // Try cache first
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.info("Cache hit: {}", cacheKey);
+                return objectMapper.readValue(cached,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+            }
+        } catch (Exception e) {
+            log.warn("Cache read failed for getCategories: {}", e.getMessage());
+        }
+
+        // Query MySQL
+        List<String> categories = fileMapper.selectDistinctCategoriesByKbId(kbId);
+
+        // Cache the result
+        try {
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(categories), Duration.ofMinutes(5));
+        } catch (Exception e) {
+            log.warn("Cache write failed for getCategories: {}", e.getMessage());
+        }
+
+        return categories;
     }
 
     public void deleteDocument(Long fileId) {
@@ -121,6 +192,7 @@ public class DocumentService {
         if (kf == null) {
             throw new BusinessException(404, "Document not found");
         }
+        Long kbId = kf.getKbId();
 
         try {
             minioClient.removeObject(
@@ -134,9 +206,6 @@ public class DocumentService {
             log.warn("MinIO deletion failed (non-fatal): key={}, error={}", kf.getFilePathInMinio(), e.getMessage());
         }
 
-        chunkMapper.deleteByFileId(fileId);
-        log.info("Chunks deleted for fileId={}", fileId);
-
         try {
             documentClient.deleteDocument(kf.getKbId(), kf.getId(), kf.getFilePathInMinio());
         } catch (Exception e) {
@@ -144,7 +213,16 @@ public class DocumentService {
         }
 
         fileMapper.deleteById(kf.getId());
-        redisTemplate.delete("preview:" + fileId);
+
+        // Evict caches
+        evictDocumentListAndCategories(kbId);
+        try {
+            redisTemplate.delete("doc:file:" + fileId);
+            redisTemplate.delete("preview:" + fileId);
+        } catch (Exception e) {
+            log.warn("Cache eviction failed for deleteDocument: {}", e.getMessage());
+        }
+
         log.info("Document deleted: fileId={}", fileId);
     }
 
@@ -200,10 +278,32 @@ public class DocumentService {
     }
 
     public KnowledgeFile getFile(Long fileId) {
+        String cacheKey = "doc:file:" + fileId;
+
+        // Try cache first
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.info("Cache hit: {}", cacheKey);
+                return objectMapper.readValue(cached, KnowledgeFile.class);
+            }
+        } catch (Exception e) {
+            log.warn("Cache read failed for getFile: {}", e.getMessage());
+        }
+
+        // Query MySQL
         KnowledgeFile kf = fileMapper.selectById(fileId);
         if (kf == null) {
             throw new BusinessException(404, "Document not found");
         }
+
+        // Cache the result
+        try {
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(kf), Duration.ofMinutes(5));
+        } catch (Exception e) {
+            log.warn("Cache write failed for getFile: {}", e.getMessage());
+        }
+
         return kf;
     }
 
@@ -221,9 +321,34 @@ public class DocumentService {
             kf.setErrorMsg(errorMsg);
         }
         fileMapper.updateById(kf);
-        redisTemplate.delete("preview:" + kf.getId());
+
+        // Evict caches
+        Long kbId = kf.getKbId();
+        evictDocumentListAndCategories(kbId);
+        try {
+            redisTemplate.delete("doc:file:" + kf.getId());
+            redisTemplate.delete("preview:" + kf.getId());
+        } catch (Exception e) {
+            log.warn("Cache eviction failed for syncIngestionStatus: {}", e.getMessage());
+        }
+
         log.info("Ingestion status synced: fileId={}, minioKey={}, status={}, chunks={}",
                 kf.getId(), minioKey, status, chunkCount);
+    }
+
+    /**
+     * Evict document list (all categories) and categories cache for a given KB.
+     */
+    private void evictDocumentListAndCategories(Long kbId) {
+        try {
+            Set<String> listKeys = redisTemplate.keys("doc:list:" + kbId + ":*");
+            if (listKeys != null && !listKeys.isEmpty()) {
+                redisTemplate.delete(listKeys);
+            }
+            redisTemplate.delete("doc:categories:" + kbId);
+        } catch (Exception e) {
+            log.warn("Document cache eviction failed: kbId={}, error={}", kbId, e.getMessage());
+        }
     }
 
     private void ensureBucketExists() {

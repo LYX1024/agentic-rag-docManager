@@ -1,5 +1,6 @@
 package com.mykb.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mykb.dto.ChatSessionCreateRequest;
@@ -15,7 +16,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -55,6 +55,7 @@ public class ChatService {
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
+                log.info("Cache hit: {}", cacheKey);
                 return objectMapper.readValue(cached, new TypeReference<List<ChatSession>>() {});
             }
         } catch (Exception e) {
@@ -87,6 +88,7 @@ public class ChatService {
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
+                log.info("Cache hit: {}", cacheKey);
                 return objectMapper.readValue(cached, new TypeReference<List<ChatMessage>>() {});
             }
         } catch (Exception e) {
@@ -113,6 +115,15 @@ public class ChatService {
             throw new BusinessException(404, "Chat session not found");
         }
         return session;
+    }
+
+    public void deleteSession(Long sessionId) {
+        ChatSession session = getSession(sessionId);
+        messageMapper.delete(new LambdaQueryWrapper<ChatMessage>().eq(ChatMessage::getSessionId, sessionId));
+        sessionMapper.deleteById(sessionId);
+        evictHistoryCache(sessionId);
+        evictSessionCache(session.getUserId());
+        log.info("Chat session deleted: sessionId={}, userId={}", sessionId, session.getUserId());
     }
 
     public void evictSessionCache(Long userId) {

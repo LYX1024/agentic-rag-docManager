@@ -1,4 +1,5 @@
-"""gRPC server entry point for RAG service."""
+"""Async gRPC server entry point for RAG service."""
+import asyncio
 import sys
 import os
 
@@ -6,31 +7,26 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "generated"))
 
 import grpc
-from concurrent import futures
 from loguru import logger
 
 from config.model_config import load_config
 
 
-def serve():
+async def serve():
     config = load_config()
 
-    # Lazy imports so config is loaded first
     from generated import kb_management_pb2_grpc
     from generated import document_pb2_grpc
     from generated import search_pb2_grpc
     from generated import chat_pb2_grpc
 
-    # Ensure all KBService implementations are registered
     from kb_service import faiss_service  # noqa: F401
-
     from services.kb_management_service import KBManagementServicer
     from services.document_service import DocumentServicer
     from services.search_service import SearchServicer
-    from services.chat_service import ChatServicer
+    from services.chat import ChatServicer
 
-    server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=4),
+    server = grpc.aio.server(
         options=[
             ("grpc.max_send_message_length", 100 * 1024 * 1024),
             ("grpc.max_receive_message_length", 100 * 1024 * 1024),
@@ -51,11 +47,11 @@ def serve():
     )
 
     server.add_insecure_port("0.0.0.0:50051")
-    logger.info("RAG gRPC server starting on port 50051")
-    server.start()
+    logger.info("Async RAG gRPC server starting on port 50051")
+    await server.start()
     logger.info("All services registered. Waiting for requests...")
-    server.wait_for_termination()
+    await server.wait_for_termination()
 
 
 if __name__ == "__main__":
-    serve()
+    asyncio.run(serve())

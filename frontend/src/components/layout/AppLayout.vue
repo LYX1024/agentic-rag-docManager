@@ -1,50 +1,61 @@
 <template>
-  <el-container class="app-layout">
-    <el-aside width="220px" class="app-aside">
-      <AppSidebar />
-    </el-aside>
-    <el-container>
-      <el-header class="app-header">
-        <AppHeader />
-      </el-header>
-      <el-main class="app-main">
-        <slot />
-      </el-main>
-    </el-container>
-  </el-container>
+  <div class="flex h-screen w-screen overflow-hidden bg-[#F9F6F3]">
+    <aside class="w-[260px] bg-[#f5f0eb] border-r border-[#d4cdc5]/40 flex flex-col flex-shrink-0">
+      <slot name="sidebar">
+        <NavLinks :current="currentHighlight" @docbase="goDocBase" />
+        <div class="flex-1" />
+        <div class="p-4 border-t border-[#d4cdc5]/40 flex items-center justify-between">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-8 h-8 rounded-full bg-[#3d3d3d] flex items-center justify-center text-[#f5f0eb] font-light text-xs flex-shrink-0">
+              {{ avatarChar }}
+            </div>
+            <span class="font-light text-sm text-[#3d3d3d] truncate">{{ username }}</span>
+          </div>
+          <button
+            class="font-light text-xs text-[#3d3d3d]/40 hover:text-[#607683] transition-colors duration-700 ease-in-out cursor-pointer flex-shrink-0 ml-2"
+            @click="handleLogout"
+          >退出</button>
+        </div>
+      </slot>
+    </aside>
+    <main class="flex-1 overflow-y-auto bg-[#F9F6F3]">
+      <slot />
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
-import AppSidebar from './AppSidebar.vue'
-import AppHeader from './AppHeader.vue'
-</script>
+import { computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useKBStore } from '@/stores/knowledgeBase'
+import { Toast } from '@/utils/toast'
+import NavLinks from './NavLinks.vue'
 
-<style scoped lang="scss">
-.app-layout {
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const kbStore = useKBStore()
+const username = computed(() => authStore.user?.username || '')
+const avatarChar = computed(() => {
+  const name = username.value || 'U'
+  return name.charAt(0).toUpperCase()
+})
 
-  .app-aside {
-    background-color: #001529;
-    overflow: hidden;
-  }
+const currentHighlight = computed(() => {
+  if (route.path === '/dashboard') return '/dashboard'
+  if (route.path.startsWith('/kb/') || route.path.startsWith('/search/')) return '/docbase'
+  if (route.path.startsWith('/chat')) return '/chat'
+  return null
+})
 
-  .app-header {
-    background: #fff;
-    border-bottom: 1px solid #e8e8e8;
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    height: 56px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  }
+onMounted(() => { authStore.fetchUser() })
 
-  .app-main {
-    background-color: #f5f7fa;
-    padding: 24px;
-    overflow-y: auto;
-    height: calc(100vh - 56px);
-  }
+async function goDocBase() {
+  await kbStore.fetchKBList()
+  if (kbStore.kbList.length > 0) router.push(`/kb/${kbStore.kbList[0].id}`)
+  else Toast.warning('请先创建知识库')
 }
-</style>
+
+function handleLogout() { authStore.logout() }
+</script>

@@ -1,42 +1,43 @@
 <template>
-  <el-card class="search-result-card" shadow="hover">
-    <div class="result-content">
-      <p class="result-text" v-html="highlightedText"></p>
+  <div class="bg-[#F9F6F3] border border-[#d4cdc5]/40 rounded-sm shadow-sm p-5 mb-3 transition-colors duration-700 ease-in-out">
+    <div class="mb-3">
+      <p class="font-light text-sm leading-relaxed text-[#3d3d3d]" v-html="highlightedText" />
     </div>
-    <div class="result-meta">
-      <div class="meta-left">
-        <el-tag size="small" type="info">
-          <el-icon style="margin-right: 2px"><Document /></el-icon>
-          {{ result.fileSource }}
-        </el-tag>
-        <span class="chunk-label">块 #{{ result.chunkIndex }}</span>
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="font-light text-xs px-2 py-0.5 bg-[#c9a88c]/30 text-[#3d3d3d]">
+          {{ result.fileName }}
+        </span>
+        <span class="font-light text-xs text-gray-400">块 #{{ result.chunkIndex }}</span>
       </div>
-      <el-tag :type="scoreType" size="small" effect="dark">
+      <span
+        class="font-light text-xs px-2 py-0.5 border border-[#d4cdc5]/40"
+        :class="scoreClass"
+      >
         {{ scorePercent }}
-      </el-tag>
+      </span>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SearchResultItem } from '@/api/search'
-import { Document } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   result: SearchResultItem
   query?: string
 }>()
 
-const scoreType = computed(() => {
-  const s = props.result.score
-  if (s > 0.7) return 'success'
-  if (s > 0.4) return 'warning'
-  return 'info'
-})
-
 const scorePercent = computed(() => {
   return (props.result.score * 100).toFixed(1) + '%'
+})
+
+const scoreClass = computed(() => {
+  const s = props.result.score
+  if (s > 0.7) return 'bg-[#5a7a6b] text-white'
+  if (s > 0.4) return 'bg-[#c9a88c] text-[#3d3d3d]'
+  return 'bg-[#F9F6F3] text-[#3d3d3d]'
 })
 
 function escapeHtml(str: string): string {
@@ -53,50 +54,8 @@ const highlightedText = computed(() => {
   if (props.query) {
     const escaped = props.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const regex = new RegExp(`(${escaped})`, 'gi')
-    text = text.replace(regex, '<mark class="search-highlight">$1</mark>')
+    text = text.replace(regex, '<mark class="bg-[#5a7a6b] text-white px-0.5">$1</mark>')
   }
   return text
 })
 </script>
-
-<style scoped lang="scss">
-.search-result-card {
-  margin-bottom: 12px;
-  border: 1px solid #e8e8e8;
-
-  .result-content {
-    margin-bottom: 12px;
-
-    .result-text {
-      font-size: 14px;
-      line-height: 1.8;
-      color: #303133;
-      margin: 0;
-
-      :deep(.search-highlight) {
-        background-color: #fff3cd;
-        color: #856404;
-        padding: 1px 4px;
-        border-radius: 2px;
-      }
-    }
-  }
-
-  .result-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    .meta-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .chunk-label {
-        font-size: 12px;
-        color: #c0c4cc;
-      }
-    }
-  }
-}
-</style>

@@ -1,19 +1,12 @@
-"""Plain text loader for .txt, .md, .csv, .json, .py and other text files."""
+"""Text loader for .txt, .md, .csv, and other plain text files."""
 from langchain_core.documents import Document
 from loguru import logger
 
 
 def txt_loader(file_path: str) -> list[Document]:
-    """Load a plain text file with UTF-8 encoding.
+    """Load a text file. For Markdown, splits into sections by headings.
 
-    Used as the default fallback loader for any unrecognized file extension.
-    Handles .txt, .md, .csv, .json, .py, and similar text-based formats.
-
-    Args:
-        file_path: Path to the text file.
-
-    Returns:
-        List containing a single langchain.schema.Document.
+    Used as the default fallback loader. Handles .txt, .md, .csv, .json, .py.
     """
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -22,29 +15,36 @@ def txt_loader(file_path: str) -> list[Document]:
         if not content.strip():
             logger.warning(f"Text file {file_path} is empty.")
             return []
-
-        document = Document(
-            page_content=content,
-            metadata={"source": file_path},
-        )
-
-        logger.info(f"Text loaded: {file_path} -> {len(content)} chars")
-        return [document]
-
     except UnicodeDecodeError:
-        # Try with other common encodings
         for encoding in ["gbk", "gb2312", "latin-1"]:
             try:
                 with open(file_path, "r", encoding=encoding) as f:
                     content = f.read()
-                logger.info(f"Text loaded with {encoding}: {file_path} -> {len(content)} chars")
-                return [Document(page_content=content, metadata={"source": file_path})]
+                break
             except UnicodeDecodeError:
                 continue
+        else:
+            logger.error(f"Failed to decode text file {file_path}")
+            raise ValueError(f"Cannot decode file: {file_path}")
 
-        logger.error(f"Failed to decode text file {file_path} with any encoding.")
-        raise ValueError(f"Cannot decode file: {file_path}")
+    # Markdown: split by headings, each section gets correct hierarchy chain
+    if file_path.lower().endswith('.md'):
+        from loader.heading_utils import split_markdown_by_headings
+        sections = split_markdown_by_headings(content)
+        docs = []
+        for sec in sections:
+            if not sec["text"]:
+                continue
+            docs.append(Document(page_content=sec["text"], metadata={
+                "source": file_path,
+                "title": sec["title"],
+                "hierarchy": sec["hierarchy"],
+                "heading": sec["heading"],
+            }))
+        logger.info(f"MD loaded: {file_path} -> {len(docs)} sections")
+        return docs if docs else [Document(page_content=content, metadata={"source": file_path})]
 
-    except Exception as e:
-        logger.error(f"Failed to load text file {file_path}: {e}")
-        raise
+    # Other text: single Document
+    document = Document(page_content=content, metadata={"source": file_path})
+    logger.info(f"Text loaded: {file_path} -> {len(content)} chars")
+    return [document]

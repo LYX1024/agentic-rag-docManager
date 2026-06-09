@@ -15,21 +15,12 @@ class VectorRetriever:
         self.kb_service = kb_service
         self.embedding_client = embedding_client
 
-    def search(self, query: str, top_k: int = 10, score_threshold: float = 0.0) -> list:
-        """Embed the query and perform vector similarity search.
-
-        Args:
-            query: The search query string.
-            top_k: Maximum number of results.
-            score_threshold: Minimum similarity score threshold.
-
-        Returns:
-            List of dicts: [{id, text, score, metadata}, ...].
-        """
+    async def search(self, query: str, top_k: int = 10, score_threshold: float = 0.0) -> list:
+        """Embed the query and perform vector similarity search. Async."""
         if not query.strip():
             return []
 
-        query_emb = self.embedding_client.embed_query(query)
+        query_emb = await self.embedding_client.embed_query(query)
         results = self.kb_service.search(query_emb, top_k, score_threshold)
 
         logger.debug(f"Vector search: '{query[:50]}...' -> {len(results)} results")

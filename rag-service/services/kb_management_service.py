@@ -22,8 +22,10 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
 
     def __init__(self, config: AppConfig):
         self.config = config
+        # persist持久化信息
         self.persist_dir = Path(config.vector_store.persist_directory)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
+        # registry注册表信息
         self._registry_path = self.persist_dir / "_kb_registry.json"
         self._registry: dict = self._load_registry()
         logger.info(f"KBManagementServicer initialized, persist_dir={self.persist_dir}")
@@ -71,7 +73,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
                 vs_type=vs_type_str,
                 persist_dir=str(self.persist_dir),
             )
-            kb_service.save()
+            kb_service.save()   # 创建向量索引文件
 
             # Use Java-side database ID as the registry key
             now = datetime.now().isoformat()
@@ -85,7 +87,7 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
                 "created_at": now,
                 "updated_at": now,
             }
-            self._save_registry()
+            self._save_registry()   # 创建注册表元数据
 
             logger.info(f"KB created: id={kb_id}, name={name}, type={vs_type_str}")
 

@@ -14,6 +14,7 @@ class BM25Retriever:
     """BM25 retrieval with jieba tokenization for Chinese support.
 
     Rebuilds its corpus from kb_service.get_all_texts() on initialisation.
+    后续考虑使用ES等专用关键词搜索数据库
     """
 
     def __init__(self, kb_service, k1: float = 1.5, b: float = 0.75):
@@ -39,11 +40,11 @@ class BM25Retriever:
 
         self._corpus = []
         self._doc_entries = []
-        self._df = defaultdict(int)
+        self._df = defaultdict(int) #df：文档频率(词出现在了几篇文档中)
 
         for entry in all_texts:
             text = entry.get("text", "")
-            tokens = jieba.lcut_for_search(text)
+            tokens = jieba.lcut_for_search(text)    # 使用jieba进行中文分词，lcut_for_search粒度更细
             self._corpus.append(tokens)
             self._doc_entries.append({
                 "id": entry.get("id", ""),
@@ -54,7 +55,7 @@ class BM25Retriever:
             # Document frequency: count each unique term once per document
             unique_terms = set(tokens)
             for term in unique_terms:
-                self._df[term] += 1
+                self._df[term] += 1 #对词去重
 
         # Average document length
         total_len = sum(len(tokens) for tokens in self._corpus)
@@ -66,16 +67,24 @@ class BM25Retriever:
         )
 
     def _idf(self, term: str) -> float:
-        """Compute IDF for a term."""
+        """
+        IDF：Inverse Document Frequency，逆文档频率。用于衡量一个词“有多重要”
+        Compute IDF for a term.
+        """
         N = len(self._corpus)
         df = self._df.get(term, 0)
         if df == 0:
             return 0.0
         # Smooth IDF: log((N - df + 0.5) / (df + 0.5) + 1)
+        # N = 文档总数;df = 包含词t的文档数;+0.5 = 平滑项;+1 = 保证正值
         return math.log((N - df + 0.5) / (df + 0.5) + 1.0)
 
     def _score(self, query_tokens: list[str], doc_idx: int) -> float:
-        """Compute BM25 score for a query against a single document."""
+        """
+        Compute BM25 score for a query against a single document.
+        BM25检索结果评分
+        我也看不懂
+        """
         doc_tokens = self._corpus[doc_idx]
         doc_len = len(doc_tokens)
 
@@ -104,9 +113,14 @@ class BM25Retriever:
 
         Returns:
             List of dicts: [{id, text, score, metadata}, ...] sorted by score descending.
+
+        查询分词 -> 计算全文档bm25分数 -> 排序并返回top_k结果
         """
         if not self._corpus:
-            return []
+            # Auto-rebuild if corpus is empty — kb_service may have been reloaded
+            self._rebuild_index()
+            if not self._corpus:
+                return []
 
         query_tokens = jieba.lcut_for_search(query)
         if not query_tokens:

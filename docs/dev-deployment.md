@@ -1,5 +1,30 @@
 # 开发环境部署指南
 
+## 初始化完快速启动(开发环境)
+
+```powershell
+# docker基础设施
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio 
+
+# python
+cd D:\MyProject\myKnowledgeBase\rag-service
+.\venv\Scripts\activate
+python server.py
+
+# java
+cd D:\MyProject\myKnowledgeBase\backend
+mvn spring-boot:run
+
+# vue
+cd D:\MyProject\myKnowledgeBase\frontend
+npm run dev
+
+# 关闭虚拟机
+wsl --shutdown
+```
+
+---
+
 ## 架构
 
 开发模式下，业务代码在 Windows 本地运行（支持热重载/断点调试），基础设施组件在 WSL2 Docker 中运行。
@@ -396,30 +421,6 @@ Invoke-RestMethod -Uri http://localhost:8080/api/kb -Method Post -Body $kbBody -
 
 ---
 
-## 额外：开发环境启动
-
-```powershell
-# docker基础设施
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d mysql redis minio 
-
-# python
-cd D:\MyProject\myKnowledgeBase\rag-service
-.\venv\Scripts\activate
-python server.py
-
-# java
-cd D:\MyProject\myKnowledgeBase\backend
-mvn spring-boot:run
-
-# vue
-cd D:\MyProject\myKnowledgeBase\frontend
-npm run dev
-
-# 关闭虚拟机
-wsl --shutdown
-```
-
----
 
 ## 服务端口速查表
 

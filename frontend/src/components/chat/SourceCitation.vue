@@ -1,83 +1,51 @@
 <template>
-  <div class="source-citation">
-    <div class="source-header">
-      <el-icon><Document /></el-icon>
-      <span class="source-filename">{{ source.file_name }}</span>
-      <el-tag size="small" :type="scoreType">
-        相似度 {{ (source.score * 100).toFixed(0) }}%
-      </el-tag>
+  <div class="bg-white border border-[#d4cdc5]/40 p-3">
+    <div class="flex items-center gap-2 flex-wrap mb-2">
+      <span class="font-light text-xs text-[#3d3d3d]">{{ group.file_name }}</span>
+      <span
+        class="font-light text-[10px] px-1.5 py-0.5 border border-[#d4cdc5]/40"
+        :class="scoreClass"
+      >
+        {{ percent }}%
+      </span>
+      <span class="font-light text-[10px] text-gray-400">
+        命中 {{ group.chunks.length }} 个分块：{{ chunkIndices }}
+      </span>
     </div>
-    <div class="source-body">
-      <p class="source-text">{{ truncatedText }}</p>
-    </div>
-    <div class="source-footer">
-      <span class="chunk-info">分块 #{{ source.chunk_index }}</span>
+    <div class="border-t border-dashed border-[#d4cdc5]/40 pt-2 flex flex-col gap-1">
+      <div v-for="chunk in group.chunks" :key="chunk.chunk_index" class="font-light text-xs text-gray-600 leading-relaxed">
+        <span class="text-[#5a7a6b]">[块{{ chunk.chunk_index }}]</span>
+        <span>{{ truncate(chunk.chunk_text || chunk.text || '') }}</span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ChatSource } from '@/api/chat'
-import { Document } from '@element-plus/icons-vue'
 
 const props = defineProps<{
-  source: ChatSource
+  group: {
+    file_name: string
+    chunks: any[]
+    bestScore: number
+  }
 }>()
 
-const scoreType = computed(() => {
-  const s = props.source.score
-  if (s > 0.7) return 'success'
-  if (s > 0.4) return 'warning'
-  return 'info'
+const scoreClass = computed(() => {
+  const s = props.group.bestScore
+  if (s > 0.7) return 'bg-[#5a7a6b] text-white'
+  if (s > 0.4) return 'bg-[#c9a88c] text-[#3d3d3d]'
+  return 'bg-[#F9F6F3] text-[#3d3d3d]'
 })
 
-const truncatedText = computed(() => {
-  const text = props.source.text || ''
-  return text.length > 150 ? text.slice(0, 150) + '...' : text
-})
-</script>
+const percent = computed(() => (props.group.bestScore * 100).toFixed(0))
 
-<style scoped lang="scss">
-.source-citation {
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  padding: 10px 12px;
+const chunkIndices = computed(() =>
+  props.group.chunks.map((c: any) => c.chunk_index).sort((a: number, b: number) => a - b).join(', ')
+)
 
-  .source-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-
-    .source-filename {
-      font-size: 13px;
-      font-weight: 500;
-      color: #303133;
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  }
-
-  .source-body {
-    .source-text {
-      font-size: 12px;
-      color: #606266;
-      line-height: 1.6;
-      margin: 0;
-    }
-  }
-
-  .source-footer {
-    margin-top: 6px;
-
-    .chunk-info {
-      font-size: 11px;
-      color: #c0c4cc;
-    }
-  }
+function truncate(text: string): string {
+  return text.length > 120 ? text.slice(0, 120) + '...' : text
 }
-</style>
+</script>

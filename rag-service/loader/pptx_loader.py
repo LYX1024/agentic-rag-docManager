@@ -1,52 +1,62 @@
-"""PPTX loader using python-pptx."""
+"""PPTX loader using python-pptx. Returns one Document per slide."""
 from langchain_core.documents import Document
 from loguru import logger
 
 
 def pptx_loader(file_path: str) -> list[Document]:
-    """Load a PPTX/PPT file and extract text from all slides.
+    """Load a PPTX file. Returns one Document per slide with slide title as heading.
 
-    Args:
-        file_path: Path to the .pptx or .ppt file.
-
-    Returns:
-        List containing a single langchain.schema.Document with all slide text.
+    Each slide gets its own metadata, so chunks from different slides
+    are tagged with the correct slide title by zh_title_enhance.
     """
     try:
         from pptx import Presentation
 
         prs = Presentation(file_path)
+        docs = []
 
-        slides_text = []
+        # Use first slide's title as the overall title
+        presentation_title = ""
+        if prs.slides and prs.slides[0].shapes.title:
+            presentation_title = prs.slides[0].shapes.title.text.strip()
+
         for slide_num, slide in enumerate(prs.slides):
-            slide_parts = []
+            parts = []
+            slide_title = ""
+
+            # Extract slide title from the title shape
+            if slide.shapes.title:
+                slide_title = slide.shapes.title.text.strip()
+
+            # Extract all text from shapes
             for shape in slide.shapes:
                 if shape.has_text_frame:
-                    for paragraph in shape.text_frame.paragraphs:
-                        text = paragraph.text.strip()
+                    for para in shape.text_frame.paragraphs:
+                        text = para.text.strip()
                         if text:
-                            slide_parts.append(text)
+                            parts.append(text)
 
-            slide_content = "\n".join(slide_parts)
-            if slide_content:
-                slides_text.append(f"[Slide {slide_num + 1}]\n{slide_content}")
+            content = "\n".join(parts)
+            if not content:
+                continue
 
-        full_text = "\n\n".join(slides_text)
-
-        if not full_text:
-            logger.warning(f"PPTX file {file_path} produced no text content.")
-            return []
-
-        document = Document(
-            page_content=full_text,
-            metadata={
+            metadata = {
                 "source": file_path,
+                "page_number": slide_num + 1,
                 "total_slides": len(prs.slides),
-            },
-        )
+            }
+            if presentation_title:
+                metadata["title"] = presentation_title
+            if slide_title:
+                metadata["heading"] = slide_title
 
-        logger.info(f"PPTX loaded: {file_path} -> {len(slides_text)} slides, {len(full_text)} chars")
-        return [document]
+            docs.append(Document(
+                page_content=f"[Slide {slide_num + 1}]\n{content}",
+                metadata=metadata,
+            ))
+
+        logger.info(f"PPTX loaded: {file_path} -> {len(docs)} slides")
+        return docs
 
     except Exception as e:
         logger.error(f"Failed to load PPTX {file_path}: {e}")
