@@ -96,6 +96,9 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
                     rrf_k=self.config.retriever.rrf_k)
             retriever = self._retrievers[kb_name]
 
+            # Build conversation history (sliding window + summary)
+            history_messages = self._history.build_messages(session_id)
+
             # Agentic RAG: ReAct loop with search function calling
             message_id = str(uuid.uuid4())
             full_response = ""
@@ -104,7 +107,8 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
             async for event_type, data in agentic_rag_stream(
                     query=query, retriever=retriever,
                     llm_client=self.llm_client, llm_model=llm_model,
-                    temperature=temperature):
+                    temperature=temperature,
+                    history_messages=history_messages):
                 if event_type == "thinking":
                     await context.write(chat_pb2.RagChatChunk(
                         token=f"[{data}] ", finished=False, sources=[],

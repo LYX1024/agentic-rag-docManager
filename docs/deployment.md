@@ -6,7 +6,7 @@
 - Docker 24+
 - Docker Compose v2+
 - WSL2 (Windows) 或 Linux
-- 可用内存 ≥ 8GB
+- 可用内存 ≥ 2GB
 
 ### 1. 配置环境变量
 
