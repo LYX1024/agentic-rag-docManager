@@ -9,7 +9,7 @@
 | `master` | 生产部署分支。`frontend/vite.config.ts` 代理指向 Nginx (`:80`)，使用 `docker compose up -d` 一键部署 |
 | `dev` | 日常开发分支。`frontend/vite.config.ts` 代理指向 Java 后端 (`:8080`)，配合 `docker-compose.dev.yml` 仅启动基础设施容器 |
 
-> 两个分支的业务代码始终保持一致，差异仅在于部署配置文件。
+> dev分支的业务代码会较新，个人开发完全基于dev分支。
 
 ## 技术栈
 
@@ -134,3 +134,9 @@ docker compose up -d --build
 ├── docs/                # 文档
 └── docker/              # Dockerfile + 配置
 ```
+## TODO
+-多模态嵌入(目前支持多文档与图片OCR文字内容，计划支持公式、表格、图片语义)
+-文档内嵌非文字内容单独解析
+-Java侧文档管理系统支持修改(目前已有分块哈希，修改无需全文重新embed)
+-切块策略升级(语义切块，父子切块)
+-更换embedding模型，向量数据库选型，BM25该用ElasticSearch，引入专门MQ(由于经济、机器性能等原因，这方面较紧张)
