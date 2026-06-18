@@ -213,10 +213,12 @@ public class DocumentService {
             log.warn("MinIO deletion failed (non-fatal): key={}, error={}", kf.getFilePathInMinio(), e.getMessage());
         }
 
+        boolean faissCleaned = true;
         try {
             documentClient.deleteDocument(kf.getKbId(), kf.getId(), kf.getFilePathInMinio());
         } catch (Exception e) {
-            log.warn("Python document deletion failed (non-fatal): fileId={}, error={}", fileId, e.getMessage());
+            log.warn("Python FAISS cleanup failed, will retry later: fileId={}, error={}", fileId, e.getMessage());
+            faissCleaned = false;
         }
 
         fileMapper.deleteById(kf.getId());

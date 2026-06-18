@@ -33,6 +33,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
         self.persist_dir.mkdir(parents=True, exist_ok=True)
         self._minio_client: MinIOClient | None = None
         self._embedding_client: EmbeddingClient | None = None
+        self._redis_client: redis.Redis | None = None
         logger.info("DocumentServicer initialized")
 
     @property
@@ -146,23 +147,29 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
         _doc_status_store.pop(minio_key, None)
         self._notify_java(minio_key, result)
 
-    def _notify_java(self, minio_key: str, result):
-        """Notify Java backend of ingestion result via Redis Pub/Sub."""
-        try:
-            r = redis.Redis(
+    @property
+    def redis_client(self) -> redis.Redis:
+        if self._redis_client is None:
+            self._redis_client = redis.Redis(
                 host=self.config.redis_host,
                 port=self.config.redis_port,
                 password=self.config.redis_password,
                 decode_responses=True,
+                socket_keepalive=True,
+                health_check_interval=30,
             )
+        return self._redis_client
+
+    def _notify_java(self, minio_key: str, result):
+        """Notify Java backend of ingestion result via Redis Pub/Sub."""
+        try:
             payload = json.dumps({
                 "minio_key": minio_key,
                 "status": "COMPLETED" if result.success else "FAILED",
                 "chunk_count": result.chunk_count,
                 "error_msg": result.error_msg or "",
             })
-            r.publish("ingestion:status", payload)
-            logger.debug(f"Published to Redis: {minio_key} -> {payload}")
+            self.redis_client.publish("ingestion:status", payload)
         except Exception as e:
             logger.warning(f"Failed to publish to Redis: {e}")
 
