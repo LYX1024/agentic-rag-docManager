@@ -24,7 +24,7 @@ public class SearchService {
     public Map<String, Object> search(SearchRequest request) {
         SearchResponse grpcResponse = searchClient.search(
                 request.query(), request.kbId(), "",
-                request.topK(), (float) request.scoreThreshold(), "vector");
+                request.topK(), (float) request.scoreThreshold(), request.searchMode());
 
         List<Map<String, Object>> results = new ArrayList<>();
         for (SearchResult result : grpcResponse.getResultsList()) {

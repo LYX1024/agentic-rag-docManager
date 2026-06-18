@@ -12,7 +12,9 @@ public record SearchRequest(
 
         int topK,
 
-        double scoreThreshold
+        double scoreThreshold,
+
+        String searchMode
 ) {
     public SearchRequest {
         if (topK <= 0) {
@@ -20,6 +22,9 @@ public record SearchRequest(
         }
         if (scoreThreshold <= 0) {
             scoreThreshold = 0.5;
+        }
+        if (searchMode == null || searchMode.isBlank()) {
+            searchMode = "vector";
         }
     }
 }
