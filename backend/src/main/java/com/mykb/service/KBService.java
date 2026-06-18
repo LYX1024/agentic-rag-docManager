@@ -7,12 +7,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mykb.dto.KBCreateRequest;
 import com.mykb.entity.KnowledgeBase;
+import com.mykb.entity.KnowledgeFile;
 import com.mykb.exception.BusinessException;
 import com.mykb.grpc.client.KBManagementClient;
 import com.mykb.mapper.KnowledgeBaseMapper;
 import com.mykb.mapper.KnowledgeFileMapper;
 import com.mykb.proto.kb.KBStatsResponse;
+import io.minio.MinioClient;
+import io.minio.RemoveObjectArgs;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -28,15 +32,20 @@ public class KBService {
     private final KnowledgeBaseMapper kbMapper;
     private final KnowledgeFileMapper fileMapper;
     private final KBManagementClient kbManagementClient;
+    private final MinioClient minioClient;
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
 
+    @Value("${minio.bucket}")
+    private String bucketName;
+
     public KBService(KnowledgeBaseMapper kbMapper, KnowledgeFileMapper fileMapper,
-                     KBManagementClient kbManagementClient, StringRedisTemplate redis,
-                     ObjectMapper objectMapper) {
+                     KBManagementClient kbManagementClient, MinioClient minioClient,
+                     StringRedisTemplate redis, ObjectMapper objectMapper) {
         this.kbMapper = kbMapper;
         this.fileMapper = fileMapper;
         this.kbManagementClient = kbManagementClient;
+        this.minioClient = minioClient;
         this.redis = redis;
         this.objectMapper = objectMapper;
     }
@@ -126,12 +135,25 @@ public class KBService {
             throw new BusinessException(404, "Knowledge base not found");
         }
 
+        // Clean up MinIO files
+        List<KnowledgeFile> files = fileMapper.selectList(
+                new LambdaQueryWrapper<KnowledgeFile>().eq(KnowledgeFile::getKbId, kbId));
+        for (KnowledgeFile f : files) {
+            try {
+                minioClient.removeObject(RemoveObjectArgs.builder()
+                        .bucket(bucketName).object(f.getFilePathInMinio()).build());
+            } catch (Exception e) {
+                log.warn("Failed to delete MinIO file: key={}", f.getFilePathInMinio());
+            }
+        }
+
         try {
             kbManagementClient.deleteKB(kbId);
         } catch (Exception e) {
             log.warn("Python KB cleanup failed (non-fatal): kbId={}, error={}", kbId, e.getMessage());
         }
 
+        fileMapper.delete(new LambdaQueryWrapper<KnowledgeFile>().eq(KnowledgeFile::getKbId, kbId));
         kbMapper.deleteById(kb.getId());
 
         // Evict cache
@@ -142,7 +164,7 @@ public class KBService {
             log.warn("Cache eviction failed for deleteKB: {}", e.getMessage());
         }
 
-        log.info("KB deleted: kbId={}", kbId);
+        log.info("KB deleted: kbId={}, filesCleaned={}", kbId, files.size());
     }
 
     public KnowledgeBase getKB(Long kbId) {

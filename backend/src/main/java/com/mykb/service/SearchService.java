@@ -35,7 +35,7 @@ public class SearchService {
         response.put("query", request.query());
         response.put("results", results);
         response.put("total", grpcResponse.getTotal());
-        response.put("tookMs", grpcResponse.getTookMs());
+        response.put("timeCost", grpcResponse.getTookMs());
         log.info("Search completed: query={}, total={}", request.query(), results.size());
         return response;
     }
@@ -57,7 +57,7 @@ public class SearchService {
         response.put("bm25Count", grpcResponse.getBm25Count());
         response.put("vectorCount", grpcResponse.getVectorCount());
         response.put("fusedCount", grpcResponse.getFusedCount());
-        response.put("tookMs", grpcResponse.getTookMs());
+        response.put("timeCost", grpcResponse.getTookMs());
         log.info("HybridSearch completed: query={}, total={}", request.query(), results.size());
         return response;
     }

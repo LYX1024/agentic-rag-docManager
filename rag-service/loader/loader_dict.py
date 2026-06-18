@@ -19,16 +19,11 @@ LOADER_DICT: dict = {
     ".md": txt_loader,
     ".txt": txt_loader,
     ".csv": txt_loader,
-    ".xlsx": txt_loader,
-    ".xls": txt_loader,
     ".json": txt_loader,
     ".py": txt_loader,
 }
 
 
 def get_loader(file_ext: str):
-    """Get the loader function for a given file extension, falling back to txt_loader."""
-    loader = LOADER_DICT.get(file_ext.lower())
-    if loader is None:
-        loader = txt_loader
-    return loader
+    """Get the loader function for a given file extension. Returns None if unsupported."""
+    return LOADER_DICT.get(file_ext.lower())

@@ -76,12 +76,12 @@ export function ragChatSSE(params: SSEParams, callbacks: SSECallbacks): EventSou
     }
   })
 
-  eventSource.addEventListener('error', (event: MessageEvent) => {
-    eventSource.close()
+  eventSource.addEventListener('error', () => {
     if (eventSource.readyState === EventSource.CLOSED) {
       callbacks.onComplete()
     } else {
-      callbacks.onError('连接中断，请重试')
+      callbacks.onError('Connection lost, please retry')
+      eventSource.close()
     }
   })
 

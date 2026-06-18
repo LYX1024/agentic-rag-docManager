@@ -198,9 +198,9 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                 file_map[source]["chunk_count"] += 1
 
             documents = []
-            for i, (fname, info) in enumerate(file_map.items()):
+            for fname, info in file_map.items():
                 documents.append(document_pb2.DocumentInfo(
-                    id=i + 1,
+                    id=hash(info["minio_key"]) & 0x7FFFFFFFFFFFFFFF,
                     kb_id=request.kb_id,
                     file_name=info["file_name"],
                     file_ext=info["file_ext"],
@@ -311,7 +311,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             file_name = Path(minio_key).name
             file_ext = Path(file_name).suffix
 
-            result = ingest_document(
+            result = await ingest_document(
                 minio_key=minio_key,
                 kb_name=kb_name,
                 file_name=file_name,
@@ -339,17 +339,18 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
             return common_pb2.StatusResponse(success=False, message=str(e))
 
     async def GetDocumentStatus(self, request, context):
-        """Get processing status. PARSING if in active tracker, otherwise COMPLETED."""
+        """Get processing status. Checks in-memory active ingestion tracker."""
         try:
-            # Check if minio_key is in active ingestion
-            minio_key = request.minio_key if hasattr(request, 'minio_key') else ""
-            if minio_key and minio_key in _doc_status_store:
-                return document_pb2.DocStatusResponse(
-                    file_id=request.file_id, status=common_pb2.PARSING,
-                    chunk_count=0, error_msg="")
+            # Check if any active ingestion has this file_id
+            in_progress = False
+            for minio_key in _doc_status_store:
+                if (hash(minio_key) & 0x7FFFFFFFFFFFFFFF) == request.file_id:
+                    in_progress = True
+                    break
 
+            status = common_pb2.PARSING if in_progress else common_pb2.COMPLETED
             return document_pb2.DocStatusResponse(
-                file_id=request.file_id, status=common_pb2.COMPLETED,
+                file_id=request.file_id, status=status,
                 chunk_count=0, error_msg="")
 
         except Exception as e:
@@ -376,7 +377,7 @@ class DocumentServicer(document_pb2_grpc.DocumentServiceServicer):
                         file_size=doc_req.file_size,
                     )
                     # Create a dummy context for each sub-call
-                    result = self.UploadDocument(single_request, context)
+                    result = await self.UploadDocument(single_request, context)
                     responses.append(result)
                     if result.status == common_pb2.COMPLETED:
                         success_count += 1

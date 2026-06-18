@@ -104,6 +104,13 @@ public class DocumentService {
             kf.setStatus("FAILED");
             kf.setErrorMsg(e.getMessage());
             fileMapper.updateById(kf);
+            // Clean up orphaned MinIO file
+            try {
+                minioClient.removeObject(io.minio.RemoveObjectArgs.builder()
+                        .bucket(bucketName).object(minioKey).build());
+            } catch (Exception ex) {
+                log.warn("Failed to clean up MinIO file after upload failure: key={}", minioKey);
+            }
             log.error("Failed to submit ingestion: fileId={}, error={}", kf.getId(), e.getMessage(), e);
         }
 

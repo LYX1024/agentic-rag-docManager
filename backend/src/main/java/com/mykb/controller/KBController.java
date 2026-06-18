@@ -35,7 +35,7 @@ public class KBController {
                                                   @RequestParam(defaultValue = "10") int size,
                                                   HttpServletRequest httpRequest) {
         long userId = StpUtil.getLoginIdAsLong();
-        Page<KnowledgeBase> kbs = kbService.listKBs(userId, page + 1, size);
+        Page<KnowledgeBase> kbs = kbService.listKBs(userId, page, size);
         return ApiResponse.success(kbs);
     }
 

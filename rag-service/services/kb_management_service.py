@@ -222,13 +222,13 @@ class KBManagementServicer(kb_management_pb2_grpc.KBManagementServiceServicer):
             # Rename FAISS files if name changed
             if request.name and request.name != old_name:
                 old_index = self.persist_dir / f"{old_name}.faiss"
-                old_pkl = self.persist_dir / f"{old_name}.pkl"
+                old_json = self.persist_dir / f"{old_name}.json"
                 new_index = self.persist_dir / f"{request.name}.faiss"
-                new_pkl = self.persist_dir / f"{request.name}.pkl"
+                new_json = self.persist_dir / f"{request.name}.json"
                 if old_index.exists():
                     old_index.rename(new_index)
-                if old_pkl.exists():
-                    old_pkl.rename(new_pkl)
+                if old_json.exists():
+                    old_json.rename(new_json)
 
             self._save_registry()
 

@@ -24,6 +24,8 @@ public class KBManagementClient {
                     .setName(name)
                     .setDescription(description != null ? description : "")
                     .setUserId(kbId)
+                    .setVsTypeValue(vsType != null && vsType.equals("FAISS") ? 0 : 1)
+                    .setEmbedModelValue(0)
                     .build();
             @SuppressWarnings("unused")
             KBInfo response = stub.createKB(request);
