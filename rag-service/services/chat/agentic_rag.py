@@ -49,16 +49,21 @@ async def agentic_rag_stream(
     llm_client: LLMClient,
     llm_model: str,
     temperature: float = 0.7,
+    history_messages: list | None = None,
 ):
     """Async generator: yields ('thinking', str) | ('answer', str) | ('sources', list).
 
     Uses OpenAI function calling. LLM receives tools: search, rewrite.
+    history_messages: prior conversation turns from build_messages() (summary + recent window).
     """
     all_sources = []
     messages = [
         {"role": "system", "content": "You are a research assistant. Use the provided tools to search the knowledge base. Answer in the user's language. Be concise."},
-        {"role": "user", "content": query},
     ]
+    # Insert conversation history (summary + past user/assistant turns) before current query
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": query})
 
     # agent循环最大5轮
     for round_num in range(1, MAX_ROUNDS + 1):

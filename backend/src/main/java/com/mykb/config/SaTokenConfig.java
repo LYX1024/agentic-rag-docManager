@@ -17,6 +17,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                         .match("/api/**")
                         .notMatch("/api/auth/login")
                         .notMatch("/api/auth/register")
+                        .notMatch("/api/chat/session/*/history")
+                        .notMatch("/api/chat/session/*/message")
                         .notMatch("/health")
                         .notMatch("/actuator/**")
                         .check(r -> StpUtil.checkLogin());

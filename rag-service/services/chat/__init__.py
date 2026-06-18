@@ -100,9 +100,12 @@ class ChatServicer(chat_pb2_grpc.ChatServiceServicer):
             message_id = str(uuid.uuid4())
             full_response = ""
             source_docs = []
+            # Build conversation history (summary + recent turns) for LLM context
+            history_messages = self._history.build_messages(session_id)
             # 三种事件：thinking, sources, answer
             async for event_type, data in agentic_rag_stream(
-                    query=query, retriever=retriever,
+                    query=query, history_messages=history_messages,
+                    retriever=retriever,
                     llm_client=self.llm_client, llm_model=llm_model,
                     temperature=temperature):
                 if event_type == "thinking":
