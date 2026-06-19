@@ -9,7 +9,7 @@
 | `master` | 生产部署分支。`frontend/vite.config.ts` 代理指向 Nginx (`:80`)，使用 `docker compose up -d` 一键部署 |
 | `dev` | 日常开发分支。`frontend/vite.config.ts` 代理指向 Java 后端 (`:8080`)，配合 `docker-compose.dev.yml` 仅启动基础设施容器 |
 
-> dev分支的业务代码会较新，个人开发完全基于dev分支。
+> !强烈建议跑通dev分支!dev分支的业务代码会较新，个人开发完全基于dev分支。
 
 ## 技术栈
 
