@@ -149,7 +149,20 @@ class FAISSService(KBService):
                     self._dimension = data.get("dimension")
                 logger.info(f"FAISS[{self.kb_name}]: loaded {self.index.ntotal} docs")
             except Exception as e:
-                logger.warning(f"FAISS[{self.kb_name}]: failed to load, starting fresh: {e}")
+                logger.warning(f"FAISS[{self.kb_name}]: failed to load from {self._index_file} / {self._docstore_file}: {e}")
+                # Try rebuild from docstore JSON if FAISS binary corrupted
+                logger.info(f"FAISS[{self.kb_name}]: attempting recovery from JSON docstore...")
+                try:
+                    with open(self._docstore_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    self.docstore = data.get("docstore", {})
+                    self._dimension = data.get("dimension")
+                    if self.docstore and self._dimension:
+                        self._rebuild_index()
+                        logger.info(f"FAISS[{self.kb_name}]: recovered index from JSON docstore ({len(self.docstore)} docs)")
+                        return
+                except Exception:
+                    pass
                 self.index = None
                 self.docstore = {}
                 self._dimension = None

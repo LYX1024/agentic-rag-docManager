@@ -2,6 +2,7 @@
 .env
 application-dev.yml
 docs/rag-learning-roadmap.md
+docs/test-guide.md
 
 # ==================== IDE/编辑器 ====================
 .idea/

@@ -156,8 +156,9 @@ class SearchServicer(search_pb2_grpc.SearchServiceServicer):
                 query=query, top_k=fetch_k, score_threshold=0.0)
 
             # Apply user-requested score threshold post-fusion if > 0
-            if score_threshold > 0:
-                fused_results = [r for r in fused_results if r["score"] >= score_threshold]
+            # 混合检索阈值有问题，先去掉
+            # if score_threshold > 0:
+            #     fused_results = [r for r in fused_results if r["score"] >= score_threshold]
 
             # 可选：重排序
             reranked_count = 0
