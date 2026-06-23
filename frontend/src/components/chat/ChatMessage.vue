@@ -90,22 +90,36 @@ const groupedSources = computed(() => {
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
 .markdown-body :deep(h3),
-.markdown-body :deep(h4) {
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
   margin: 16px 0 8px;
   font-weight: 300;
   letter-spacing: 0.05em;
+  line-height: 1.3;
+}
+.markdown-body :deep(h1) {
+  font-size: 22px;
+  border-bottom: 2px solid #3d3d3d;
+  padding-bottom: 6px;
 }
 .markdown-body :deep(h2) {
-  font-size: 16px;
-  border-bottom: 2px solid #3d3d3d;
+  font-size: 18px;
+  border-bottom: 1px solid #d4cdc5;
   padding-bottom: 4px;
 }
-.markdown-body :deep(h3) { font-size: 14px; }
+.markdown-body :deep(h3) { font-size: 16px; }
+.markdown-body :deep(h4) { font-size: 14px; }
+.markdown-body :deep(h5) { font-size: 13px; }
+.markdown-body :deep(h6) { font-size: 12px; color: #a89279; }
 .markdown-body :deep(p) { margin: 8px 0; }
 .markdown-body :deep(ul),
 .markdown-body :deep(ol) { padding-left: 20px; margin: 8px 0; }
 .markdown-body :deep(li) { margin: 4px 0; }
-.markdown-body :deep(strong) { color: #3d3d3d; }
+.markdown-body :deep(strong) { font-weight: 500; color: #3d3d3d; }
+.markdown-body :deep(em) { font-style: italic; color: #5a7a6b; }
+.markdown-body :deep(strong em),
+.markdown-body :deep(em strong) { font-weight: 500; font-style: italic; color: #3d3d3d; }
 .markdown-body :deep(code) {
   font-family: 'Courier New', Courier, monospace;
   background: #e8e8e8;
