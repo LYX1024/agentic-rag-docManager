@@ -164,11 +164,32 @@ function downloadFile() {
 <style scoped>
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
-.markdown-body :deep(h3) {
-  margin-top: 24px;
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  margin: 20px 0 10px;
   font-weight: 300;
   letter-spacing: 0.05em;
+  line-height: 1.3;
 }
+.markdown-body :deep(h1) {
+  font-size: 24px;
+  border-bottom: 2px solid #3d3d3d;
+  padding-bottom: 6px;
+}
+.markdown-body :deep(h2) {
+  font-size: 20px;
+  border-bottom: 1px solid #d4cdc5;
+  padding-bottom: 4px;
+}
+.markdown-body :deep(h3) { font-size: 17px; }
+.markdown-body :deep(h4) { font-size: 15px; }
+.markdown-body :deep(h5) { font-size: 14px; }
+.markdown-body :deep(h6) { font-size: 13px; color: #a89279; }
+.markdown-body :deep(p) { margin: 10px 0; }
+.markdown-body :deep(strong) { font-weight: 500; }
+.markdown-body :deep(em) { font-style: italic; color: #5a7a6b; }
 .markdown-body :deep(pre) {
   background: #f5f5f5;
   padding: 16px;
